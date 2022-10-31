@@ -30,7 +30,6 @@
             (= next_token 1)
             (= to_serve 1)
         )
-    
     )
 :init true)
 )
@@ -198,8 +197,6 @@
 
 (define-fun prop-inductive () Bool
 (! 
-
-
     (forall ((i index) (j index))
        (and  
         ( => 
@@ -209,20 +206,41 @@
                 (= (state j) critical)
             ))
         )
-    
-        (not (= next_token (token i)))   
- 
+
+        (<= 
+            1
+            (+ next_token (* (- 1) (token i)))
+        )
+
+        (or 
+            (= i j)
+            (not (= to_serve (token j)))
+            (not (= to_serve (token i)))
+            (= (state j) 0)
+        )
+
         (or 
             (= i j)
             (not (= to_serve (token i)))
-            (not (= to_serve (token j)))
+            (not (= (state j) 2))
         )
 
-;;  (not (= (|Param['[index]'][Int]| state _iindex1) 1))))
+        (or 
+            (= i j)
+            (= (state i) 0)
+            (not (= (token i) (token j)))
+        )
+
+        (not (= next_token (token i)))
 
         (or 
-            (not (= (token j) 0))
-            (not (= (state j) 1))
+            (not (= (state i) 2))
+            (= to_serve (token i))
+        )
+
+        (or 
+            (<= 1 (token j))
+            (= (token j) 0)
         )
 
     ))

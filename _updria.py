@@ -724,8 +724,7 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula) -> Bool :
             print('generalizing diagram...')
             gen_diagram = generalize_diagram(paramts, abs_vars, frame_sequence[cti.frame_number-1],\
              cti.diagram, predicates_dict, H_formula)
-            #print(gen_diagram)
-            gen_diagram = cti.diagram
+            print(gen_diagram)
             # # add diagram to all frames from 1 to frame_number
             for i in range(1, cti.frame_number + 1):
                 frame_sequence[i].append(Not(gen_diagram)) 
