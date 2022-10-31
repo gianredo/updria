@@ -161,7 +161,7 @@
  )
 :invar-property 3))
 
-(define-fun unsafe-4 () Bool
+(define-fun safe-4 () Bool
 (! 
  (forall ((i index))
         (not (and  
@@ -208,8 +208,8 @@
         )
 
         (<= 
-            1
-            (+ next_token (* (- 1) (token i)))
+           1
+           (+ next_token (* (- 1) (token i)))
         )
 
         (or 
@@ -219,11 +219,11 @@
             (= (state j) 0)
         )
 
-        (or 
-            (= i j)
-            (not (= to_serve (token i)))
-            (not (= (state j) 2))
-        )
+        ;;(or 
+        ;;    (= i j)
+        ;;    (not (= to_serve (token i)))
+        ;;    (not (= (state j) 2))
+        ;;)
 
         (or 
             (= i j)
@@ -233,10 +233,10 @@
 
         (not (= next_token (token i)))
 
-        (or 
-            (not (= (state i) 2))
-            (= to_serve (token i))
-        )
+        ;;(or 
+        ;;    (not (= (state i) 2))
+        ;;    (= to_serve (token i))
+        ;;)
 
         (or 
             (<= 1 (token j))

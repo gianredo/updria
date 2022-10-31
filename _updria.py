@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # UPDRIA PROTOTYPE 
-from calendar import c
 from typing import Dict, NamedTuple
 from xml.dom import NotSupportedErr
 from mathsat import *
@@ -24,9 +23,7 @@ class Options:
         return "\n".join(sorted([
             "vmt_property = %s" % self.vmt_property,
             ]))
-
 # end of class Options
-
 
 def getopts():
     p = argparse.ArgumentParser()
@@ -40,11 +37,9 @@ def getopts():
     p.parse_args(namespace=opts)
     return opts
 
-
 #-----------------------------------------------------------------------------
 # convenience functions (PySMT style)
 #-----------------------------------------------------------------------------
-
 env = msat_create_env({'printer.defines_prefix' : 'd!',
                        'allow_bool_function_args' : 'true'})
 
@@ -196,6 +191,7 @@ def QVar(name, sort):
         _qvars[name] = res
     return res
 
+
 def is_qvar(t): return msat_term_is_variable(env, t)
 
 
@@ -251,8 +247,8 @@ VerificationResult = namedtuple('VerificationResult', ['status', 'witness'])
 # updria  verification functions
 #-----------------------------------------------------------------------------
 
-## Global parameter of UPDRIA
 Cti = namedtuple('Cti', ['diagram', 'universe_dict', 'frame_number'])
+## Global parameters of UPDRIA
 
 #frame sequence is a list of list of diagrams
 frame_sequence = []
@@ -560,14 +556,13 @@ def get_next_abstract_formula(formula, abs_vars):
 
 
 def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
-    predicates_dict, H_formula, initial_constr : Bool = False):    
+    predicates_dict, H_formula, abs_init, initial_constr : Bool = False):    
     
     #we need H_formula for next variables
     #we substitute every (p i1 ... in) with (p.next i1 ... in)
     H_formula_next = get_next_abstract_formula(H_formula, abs_vars)   
     H_formula_next = substitute(H_formula_next, [s[0] for s in paramts.statevars], [s[1] for s in paramts.statevars])       
 
-    abs_init = substitute(paramts.init, list(predicates_dict), list(predicates_dict.values()))
     next_abs_init = get_next_abstract_formula(abs_init, abs_vars) 
 
     def barvar(v):
@@ -645,7 +640,7 @@ def minimize_core(s):
     return core
 
 
-def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_formula):
+def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_formula, hat_init):
     kind, qf, body = split_quantifier(diagram)
     assert kind == EXISTS
     def collect(e, tag, formula):
@@ -674,7 +669,7 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
 
     s2 = Solver()
     abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars, frame, n_diagram,\
-         predicates_dict, H_formula, True)
+         predicates_dict, H_formula, hat_init, True)
 
     s2.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
     
@@ -695,25 +690,19 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     return g_diagram
 
 
-def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula) -> Bool :
+def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init) -> Bool :
     
-    hat_init = substitute(paramts.init, list(predicates_dict.keys()), list(predicates_dict.values()))
-    f = And(hat_init, cti.diagram)
-    s = Solver()
-    s.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
-
     if cti.frame_number == 0:
         print('CEX! Violation of the initial formula')
         return False
    
     else:    
-        s.reset()
         #check if the cti is reachable from the last frame              
         
         print('trying to block cex at frame %d' %cti.frame_number)
         # print('trying to block diagram %s' %smt2(cti.diagram))
         abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[cti.frame_number-1],\
-             cti.diagram, predicates_dict, H_formula)
+             cti.diagram, predicates_dict, H_formula, hat_init)
 
         s = Solver()     
         s.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
@@ -723,11 +712,12 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula) -> Bool :
             # generalize diagram with unsat cores
             print('generalizing diagram...')
             gen_diagram = generalize_diagram(paramts, abs_vars, frame_sequence[cti.frame_number-1],\
-             cti.diagram, predicates_dict, H_formula)
-            print(gen_diagram)
+             cti.diagram, predicates_dict, H_formula, hat_init)
+            # print(gen_diagram)
             # # add diagram to all frames from 1 to frame_number
             for i in range(1, cti.frame_number + 1):
-                frame_sequence[i].append(Not(gen_diagram)) 
+                if Not(gen_diagram) not in set(frame_sequence[i]):
+                    frame_sequence[i].append(Not(gen_diagram)) 
             s.reset()
             return True
 
@@ -799,7 +789,6 @@ def updria(opts, paramts : ParametricTransitionSystem):
 
     predicates = find_initial_predicates(opts, paramts.sorts, paramts.init, paramts.prop) 
     abstract_predicates_dict, abs_vars = get_abstract_predicates(predicates)
-    #abstract_predicates_dict = remove_duplicates(abstract_predicates_dict)
     H_formula = get_h_formula(abstract_predicates_dict)
     #compute abstraction of initial formula and property
     hat_init = substitute(paramts.init, \
@@ -808,6 +797,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
     hat_prop = substitute(paramts.prop, \
         list(abstract_predicates_dict), list(abstract_predicates_dict.values()))
 
+    abstract_predicates_dict = remove_duplicates(abstract_predicates_dict)
     # here we switch to z3. probabily using string is inefficent
     # we should use convertor (pystm?) from mathsat to z3
     # convertor is avaible only for predicates
@@ -828,7 +818,6 @@ def updria(opts, paramts : ParametricTransitionSystem):
     
     #main loop of updr
     while True:
-
         #there are no more cti's
         assert not cti_queue
         #compute intersection between last frame and bad
@@ -852,7 +841,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
             while cti_queue:
                 curr =  cti_queue[-1]
                 #recursevily block the cex
-                if not recblock(paramts, abstract_predicates_dict, abs_vars, curr, H_formula):
+                if not recblock(paramts, abstract_predicates_dict, abs_vars, curr, H_formula, hat_init):
                     # abstract coutnerexample
                         print('abstract cex')
                         cti_queue.reverse()
@@ -879,17 +868,17 @@ def updria(opts, paramts : ParametricTransitionSystem):
         print('propagation phase...')
         for i in range(1, frame_counter):
             for d in frame_sequence[i]:
-                f = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[i+1], \
-                    Not(d), abstract_predicates_dict, H_formula)
-                s1 = Solver()
-                s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
-                if s1.check() == z3.unsat:
-                    frame_sequence[i+1].append(d)
-                s.reset()
-            
+                if d not in frame_sequence[i+1]:
+                    f = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[i+1], \
+                        Not(d), abstract_predicates_dict, H_formula, hat_init)
+                    s1 = Solver()
+                    s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
+                    if s1.check() == z3.unsat:
+                        frame_sequence[i+1].append(d)
+                    s.reset()
+                
             if set(frame_sequence[i]) == set(frame_sequence[i+1]):
                 print('Proved! Inductive invariant:')
                 for x in frame_sequence[i+1]:
                     print(x)
                 return VerificationResult(SAFE, frame_sequence[i])
-
