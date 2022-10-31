@@ -1,0 +1,223 @@
+sat
+sat
+(
+  ;; universe for index:
+  ;;   index!val!1 index!val!0 
+  ;; -----------
+  ;; definitions for universe elements:
+  (declare-fun index!val!1 () index)
+  (declare-fun index!val!0 () index)
+  ;; cardinality constraint:
+  (forall ((x index)) (or (= x index!val!1) (= x index!val!0)))
+  ;; -----------
+  (define-fun next_token^1_bar () Int
+    2)
+  (define-fun next_token^1 () Int
+    5)
+  (define-fun to_serve_bar () Int
+    1)
+  (define-fun x_next_token_equals_1^1 () Bool
+    false)
+  (define-fun to_serve^1_bar () Int
+    1)
+  (define-fun next_token_bar () Int
+    1)
+  (define-fun diagram () Bool
+    (exists ((i1 index) (i2 index))
+  (and (not (= i1 i2))
+       (not x_next_token_equals_1)
+       (not x_to_serve_equals_1)
+       (not (x_state_idle i1))
+       (not (x_state_idle i2))
+       (x_state_crit i1)
+       (x_state_crit i2)
+       (not (x_token_equals_0 i1))
+       (not (x_token_equals_0 i2)))))
+  (define-fun next_token () Int
+    1)
+  (define-fun x_to_serve_equals_1 () Bool
+    true)
+  (define-fun x_next_token_equals_1 () Bool
+    true)
+  (define-fun x_to_serve_equals_1^1 () Bool
+    true)
+  (define-fun to_serve^1 () Int
+    1)
+  (define-fun to_serve () Int
+    1)
+  (define-fun diagram_next_weaken () Bool
+    (exists ((i1 index) (i2 index))
+  (and (not (= i1 i2)) (x_state_crit^1 i1) (x_state_crit^1 i2))))
+  (define-fun H () Bool
+    (forall ((i index))
+  (and (= (x_state_idle i) (= (state i) 0))
+       (= (x_state_crit i) (= (state i) 2))
+       (= (x_token_equals_0 i) (= (token i) 0))
+       (= x_next_token_equals_1 (= next_token 1))
+       (= x_to_serve_equals_1 (= to_serve 1)))))
+  (define-fun diagram_weaken () Bool
+    (exists ((i1 index) (i2 index))
+  (and (not (= i1 i2)) (x_state_crit i1) (x_state_crit i2))))
+  (define-fun H_next () Bool
+    (forall ((i index))
+  (and (= (x_state_idle^1 i) (= (state^1 i) 0))
+       (= (x_state_crit^1 i) (= (state^1 i) 2))
+       (= (x_token_equals_0^1 i) (= (token^1 i) 0))
+       (= x_next_token_equals_1^1 (= next_token^1 1))
+       (= x_to_serve_equals_1^1 (= to_serve^1 1)))))
+  (define-fun wait () Int
+    1)
+  (define-fun trans () Bool
+    (let ((a!1 (exists ((i1 index))
+             (let ((a!1 (forall ((j index))
+                          (or (= i1 j)
+                              (and (= (state^1_bar j) (state_bar j))
+                                   (= (token^1_bar j) (token_bar j)))))))
+               (and (= (state_bar i1) 2)
+                    (= (state^1_bar i1) 0)
+                    (= (token^1_bar i1) 0)
+                    (= next_token^1_bar next_token_bar)
+                    (= to_serve^1_bar (+ 1 to_serve_bar))
+                    a!1))))
+      (a!2 (exists ((i1 index))
+             (let ((a!1 (forall ((j index))
+                          (or (= i1 j)
+                              (and (= (state^1_bar j) (state_bar j))
+                                   (= (token^1_bar j) (token_bar j)))))))
+               (and (= (state_bar i1) 0)
+                    (= (state^1_bar i1) 1)
+                    (= (token^1_bar i1) next_token_bar)
+                    (= next_token^1_bar (+ 1 next_token_bar))
+                    (= to_serve_bar to_serve^1_bar)
+                    a!1))))
+      (a!3 (exists ((i1 index))
+             (let ((a!1 (forall ((j index))
+                          (or (= i1 j)
+                              (and (= (state^1_bar j) (state_bar j))
+                                   (= (token^1_bar j) (token_bar j)))))))
+               (and (= (state_bar i1) 1)
+                    (= (state^1_bar i1) 2)
+                    (= (token_bar i1) to_serve_bar)
+                    (= (token^1_bar i1) (token_bar i1))
+                    (= next_token^1_bar next_token_bar)
+                    (= to_serve_bar to_serve^1_bar)
+                    a!1)))))
+  (or a!1 a!2 a!3)))
+  (define-fun critical () Int
+    2)
+  (define-fun diagram_2 () Bool
+    (exists ((i0 index) (i1 index))
+  (and (not (= i0 i1))
+       (not (x_state_crit i0))
+       (not (x_state_idle i0))
+       (not (x_token_equals_0 i0)))))
+  (define-fun diagram_2_next () Bool
+    (exists ((i0 index) (i1 index))
+  (and (not (= i0 i1))
+       (not (x_state_crit^1 i0))
+       (not (x_state_idle^1 i0))
+       (not (x_token_equals_0^1 i0)))))
+  (define-fun first-rule () Bool
+    (exists ((i1 index))
+  (let ((a!1 (forall ((j index))
+               (or (= i1 j)
+                   (and (= (state^1_bar j) (state_bar j))
+                        (= (token^1_bar j) (token_bar j)))))))
+    (and (= (state_bar i1) 0)
+         (= (state^1_bar i1) 1)
+         (= (token^1_bar i1) next_token_bar)
+         (= next_token^1_bar (+ 1 next_token_bar))
+         (= to_serve_bar to_serve^1_bar)
+         a!1))))
+  (define-fun hat-initial () Bool
+    (forall ((i index))
+  (and (x_state_idle i)
+       (x_token_equals_0 i)
+       x_next_token_equals_1
+       x_to_serve_equals_1)))
+  (define-fun hat-prop () Bool
+    (forall ((i index) (j index))
+  (or (= i j) (not (and (x_state_crit i) (x_state_crit j))))))
+  (define-fun EQ () Bool
+    (forall ((i index))
+  (and (= (= (state i) 0) (= (state_bar i) 0))
+       (= (= (state i) 2) (= (state_bar i) 2))
+       (= (= (token i) 0) (= (token_bar i) 0))
+       (= (= next_token 1) (= next_token_bar 1))
+       (= (= to_serve 1) (= to_serve_bar 1))
+       (= (= (state^1 i) 0) (= (state^1_bar i) 0))
+       (= (= (state^1 i) 2) (= (state^1_bar i) 2))
+       (= (= (token^1 i) 0) (= (token^1_bar i) 0))
+       (= (= next_token^1 1) (= next_token^1_bar 1))
+       (= (= to_serve^1 1) (= to_serve^1_bar 1)))))
+  (define-fun idle () Int
+    0)
+  (define-fun second-rule () Bool
+    (exists ((i1 index))
+  (let ((a!1 (forall ((j index))
+               (or (= i1 j)
+                   (and (= (state^1_bar j) (state_bar j))
+                        (= (token^1_bar j) (token_bar j)))))))
+    (and (= (state_bar i1) 1)
+         (= (state^1_bar i1) 2)
+         (= (token_bar i1) to_serve_bar)
+         (= (token^1_bar i1) (token_bar i1))
+         (= next_token^1_bar next_token_bar)
+         (= to_serve_bar to_serve^1_bar)
+         a!1))))
+  (define-fun third-rule () Bool
+    (exists ((i1 index))
+  (let ((a!1 (forall ((j index))
+               (or (= i1 j)
+                   (and (= (state^1_bar j) (state_bar j))
+                        (= (token^1_bar j) (token_bar j)))))))
+    (and (= (state_bar i1) 2)
+         (= (state^1_bar i1) 0)
+         (= (token^1_bar i1) 0)
+         (= next_token^1_bar next_token_bar)
+         (= to_serve^1_bar (+ 1 to_serve_bar))
+         a!1))))
+  (define-fun diagram_next () Bool
+    (exists ((i1 index) (i2 index))
+  (and (not (= i1 i2))
+       (not x_next_token_equals_1^1)
+       (not x_to_serve_equals_1^1)
+       (not (x_state_idle^1 i1))
+       (not (x_state_idle^1 i2))
+       (x_state_crit^1 i1)
+       (x_state_crit^1 i2)
+       (not (x_token_equals_0^1 i1))
+       (not (x_token_equals_0^1 i2)))))
+  (define-fun x_state_crit ((x!0 index)) Bool
+    false)
+  (define-fun x_token_equals_0 ((x!0 index)) Bool
+    true)
+  (define-fun token_bar ((x!0 index)) Int
+    0)
+  (define-fun state^1 ((x!0 index)) Int
+    (ite (= x!0 index!val!0) 6
+      0))
+  (define-fun state^1_bar ((x!0 index)) Int
+    (ite (= x!0 index!val!0) 1
+      0))
+  (define-fun token ((x!0 index)) Int
+    0)
+  (define-fun state_bar ((x!0 index)) Int
+    0)
+  (define-fun x_token_equals_0^1 ((x!0 index)) Bool
+    (not (= x!0 index!val!0)))
+  (define-fun x_state_idle ((x!0 index)) Bool
+    true)
+  (define-fun x_state_crit^1 ((x!0 index)) Bool
+    false)
+  (define-fun token^1_bar ((x!0 index)) Int
+    (ite (= x!0 index!val!0) 1
+      0))
+  (define-fun state ((x!0 index)) Int
+    0)
+  (define-fun x_state_idle^1 ((x!0 index)) Bool
+    (not (= x!0 index!val!0)))
+  (define-fun token^1 ((x!0 index)) Int
+    (ite (= x!0 index!val!0) 7
+      0))
+)

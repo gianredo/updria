@@ -1,0 +1,229 @@
+(declare-sort index 0)
+
+;;actual state variables
+(declare-fun state (index) Int)
+(declare-fun token (index) Int)
+(declare-const next_token Int)
+(declare-const to_serve Int)
+(declare-fun state^1 (index) Int)
+(declare-fun token^1 (index) Int)
+(declare-const next_token^1 Int)
+(declare-const to_serve^1 Int)
+
+(define-const idle Int 0)
+(define-const wait Int 1)
+(define-const critical Int 2)
+
+(define-fun sv.state ((x index)) Int (! (state x) :next state^1))
+(define-fun sv.token ((x index)) Int (! (token x) :next token^1))
+(define-fun sv.next_token () Int (! next_token :next next_token^1))
+(define-fun sv.to_serve () Int (! to_serve :next to_serve^1))
+
+;;initial formula 
+
+(define-fun init () Bool 
+(!
+    (forall ((i1 index))
+        (and 
+            (= (state i1) idle)
+            (= (token i1) 0)
+            (= next_token 1)
+            (= to_serve 1)
+        )
+    
+    )
+:init true)
+)
+
+;;transition formula 
+(define-fun first-rule () Bool
+(!
+    (exists ((i1 index))
+        (and
+            (= (state i1) idle)
+            (= (state^1 i1) wait)
+            (= (token^1 i1) next_token)
+            (= next_token^1  (+ next_token 1))
+            (= to_serve  to_serve^1 )
+            (forall ((j index))
+                (=> 
+                    (not (= i1 j))
+                    (and 
+                        (= (state^1 j) (state  j))
+                        (= (token^1 j) (token  j))
+                    )
+                )   
+            )
+        )       
+    )
+:action 1))
+
+(define-fun second-rule () Bool
+(!
+    (exists ((i1 index))
+        (and
+            (= (state  i1) wait)
+            (= (state^1 i1) critical)
+            (= (token i1) to_serve )
+            (= (token^1 i1) (token i1))
+            (= next_token^1  next_token )
+            (= to_serve  to_serve^1 )
+            (forall ((j index))
+                (=> 
+                    (not (= i1 j))
+                    (and 
+                        (= (state^1  j) (state  j))
+                        (= (token^1  j) (token  j))
+                    )
+                )   
+            )
+        )       
+    )
+:action 2))
+
+(define-fun third-rule () Bool
+(! 
+    (exists ((i1 index))
+        (and
+            (= (state  i1) critical)
+            (= (state^1  i1) idle)
+            (= (token^1  i1) 0)
+            (= next_token^1  next_token )
+            (= to_serve^1 (+ to_serve 1))
+            (forall ((j index))
+                (=> 
+                    (not (= i1 j))
+                    (and 
+                        (= (state^1  j) (state  j))
+                        (= (token^1  j) (token  j))
+                    )
+                )   
+            )
+        )       
+    )
+:action 3))
+
+;;(define-fun trans () Bool
+;;    (or first-rule second-rule third-rule)
+;; )
+
+(define-fun prop () Bool
+(! 
+    (forall ((i index) (j index))
+        ( => 
+            (not (= i j))
+            (not (and  
+                (= (state i) critical)
+                (= (state j) critical)
+                )
+            )
+        )
+    )
+:invar-property 0))
+
+(define-fun unsafe-1 () Bool
+(! 
+
+ (forall ((i index) (j index))
+    ( => 
+        (not (= i j))
+        (not (and  
+            (= (state i) idle)
+            (= (state j) wait)
+        ))       
+    )
+    )
+:invar-property 1))
+
+(define-fun unsafe-2 () Bool
+(! 
+ (forall ((i index) (j index))
+    ( => 
+        (not (= i j))
+        (not (and  
+            (= (state i) critical)
+            (= (state j) wait)
+        ))
+    )
+ )
+:invar-property 2))
+
+(define-fun unsafe-3 () Bool
+(! 
+ (forall ((i index) (j index))
+    ( => 
+        (not (= i j))
+        (not (and  
+            (= (state i) idle)
+            (= (state j) critical)
+            (> next_token 4)
+        ))
+    )
+ )
+:invar-property 3))
+
+(define-fun unsafe-4 () Bool
+(! 
+ (forall ((i index))
+        (not (and  
+            (= (state i) idle)
+            (> (token i) 1)
+        ))
+    
+ )
+:invar-property 4))
+
+(define-fun safe-5 () Bool 
+(!
+ (forall ((i index) (j index))
+    ( => 
+        (and 
+            (not (= i j))
+            (= (token i) (token j))
+        )
+            (= (token i) 0)
+    ))
+:invar-property 5))
+
+(define-fun safe-2 () Bool
+(! 
+ (forall ((i index))
+        (not (and  
+            (= (state i) critical)
+            (= (token i) 0)
+        ))
+    )
+:invar-property 6))
+
+
+(define-fun prop-inductive () Bool
+(! 
+
+
+    (forall ((i index) (j index))
+       (and  
+        ( => 
+            (not (= i j))
+            (not (and  
+                (= (state i) critical)
+                (= (state j) critical)
+            ))
+        )
+    
+        (not (= next_token (token i)))   
+ 
+        (or 
+            (= i j)
+            (not (= to_serve (token i)))
+            (not (= to_serve (token j)))
+        )
+
+;;  (not (= (|Param['[index]'][Int]| state _iindex1) 1))))
+
+        (or 
+            (not (= (token j) 0))
+            (not (= (state j) 1))
+        )
+
+    ))
+:invar-property 7))
