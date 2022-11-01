@@ -95,6 +95,7 @@ def mksort(name):
 def substitute(t, tosubst, values):
     return msat_apply_substitution(env, t, tosubst, values)
 
+
 def pair(vlist):
     for i, a in enumerate(vlist):
         for j in range(i+1, len(vlist)):
@@ -115,33 +116,10 @@ def split_quantifier(t):
         t = arg(t, 1)
     return kind, qvars, t
 
-# p_var are used for the ground instances
-p_var_cache = {}
-all_p_vars = set()
 
 def nextvar(v):
     return Var(name(v) + ".next", type_(v))
 
-
-def p_var(idx, sort):
-    assert not MSAT_ERROR_TYPE(sort)
-    res = p_var_cache.get(sort)
-    if not res:
-        p = Var("P{%s}{%d}" % (msat_type_repr(sort), idx), sort)
-        all_p_vars.add(p)
-        p_var_cache[sort] = [p]        
-    elif res and len(res) <= idx:
-        p = Var("P{%s}{%d}" % (msat_type_repr(sort), idx), sort)
-        all_p_vars.add(p)
-        p_var_cache[sort].append(p)
-    else:
-        p = res[idx]
-    return p
-
-
-def is_prophecy(v):
-    return v in all_p_vars
-           
 _param_map = {}
 _params = set()
 _param_read_funs = set()
@@ -178,6 +156,7 @@ def is_param(v): return v in _params
 def is_param_val(t):
     return msat_term_is_uf(env, t) \
            and msat_decl_id(msat_term_get_decl(t)) in _param_read_funs
+
 
 def Var(name, tp):
     d = msat_declare_function(env, name, tp)
@@ -223,6 +202,7 @@ _print = print
 def print(*args, **kwds):
     _print(*args, **kwds)
     sys.stdout.flush()
+
 
 def banner(msg):
     print('=' * 80)
@@ -735,11 +715,10 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
             raise NotImplementedError
 
 
-def substitute_diagram(cti : Cti, predicates_dict, abs_vars):
-    diagram = cti.diagram
-    universe = cti.universe_dict
+def substitute_diagram(diagram, predicates_dict, abs_vars):
+
     kind, qvars, body = split_quantifier(diagram)
-    assert kind == EXISTS
+    #assert kind == EXISTS
     
     cache = {}
     #save i1...in
@@ -783,6 +762,50 @@ def substitute_diagram(cti : Cti, predicates_dict, abs_vars):
     return body
 
 
+def get_concrete_bmc_formula(cti_queue, paramts): 
+    '''
+    takes the cti queue and a paramts
+    return the bmc as mathsat formula
+    '''
+    return [FALSE()]
+
+def concretize_cti_queue(cti_queue, paramts):
+    '''
+    this function returns a triple 
+        - a boolean flag (true if a real cti is found)
+        - the real cti or None
+        - a set of predicates or None
+    ''' 
+
+    bmc_list_formula = get_concrete_bmc_formula(cti_queue, paramts)
+    wenv = msat_create_shared_env({'interpolation' : 'true'}, env)
+    
+    for f in bmc_list_formula:
+        msat_assert_formula(wenv, f)
+        
+    print(msat_last_error_message(wenv))
+    res = msat_solve(wenv)
+    if res == MSAT_SAT:
+        witness = []
+        ## compute witness
+        pass
+        return True, False, None
+    elif res == MSAT_UNSAT:
+        ## compute interpolants
+        ## not sure if i have to redo every
+        new_preds_dict = []
+        return False, None, new_preds_dict
+    
+    else: 
+        raise AssertionError('Ground BMC queries should be either sat or unsat')
+
+def print_cex(cex):
+    '''
+    this function should print out the counterexample 
+    in a finite instance of the sorts
+    
+    '''
+    pass
 
 def updria(opts, paramts : ParametricTransitionSystem):
     global frame_sequence, cti_queue, frame_counter
@@ -847,10 +870,21 @@ def updria(opts, paramts : ParametricTransitionSystem):
                         cti_queue.reverse()
                         for i, c in enumerate(cti_queue):
                             banner('diagram at step %d' %(i))
-                            concrete_d = substitute_diagram(c, abstract_predicates_dict, abs_vars)
+                            concrete_d = substitute_diagram(c.diagram, abstract_predicates_dict, abs_vars)
                             print(str(concrete_d))
+                        return -1
+                        # spurious, cex, new_preds_dict = concretize_cti_queue(cti_queue, paramts)
+                        # if not spurious:
+                        #     print('Concrete conterexample is found!')                        
+                        #     return VerificationResult(UNSAFE, cex)
+                        # else:
+                        #     # can this happen? 
+                        #     if new_preds_dict.item() <= abstract_predicates_dict.items():
+                        #         return VerificationResult(UNKNOWN, cti_queue)
+                        #     else: 
+                        #         abstract_predicates_dict.update(new_preds_dict)
+                        #         # restart the loop with updated set of predicates
 
-                        return VerificationResult(UNSAFE, cti_queue)
                     # refine predicates or exit with a concrete cex                    
 
             else:
@@ -880,5 +914,5 @@ def updria(opts, paramts : ParametricTransitionSystem):
             if set(frame_sequence[i]) == set(frame_sequence[i+1]):
                 print('Proved! Inductive invariant:')
                 for x in frame_sequence[i+1]:
-                    print(x)
+                    print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
                 return VerificationResult(SAFE, frame_sequence[i])

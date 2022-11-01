@@ -212,18 +212,18 @@
            (+ next_token (* (- 1) (token i)))
         )
 
-        (or 
-            (= i j)
-            (not (= to_serve (token j)))
-            (not (= to_serve (token i)))
-            (= (state j) 0)
-        )
-
         ;;(or 
         ;;    (= i j)
+        ;;    (not (= to_serve (token j)))
         ;;    (not (= to_serve (token i)))
-        ;;    (not (= (state j) 2))
+        ;;    (= (state j) 0)
         ;;)
+
+        (or 
+            (= i j)
+            (not (= to_serve (token i)))
+            (not (= (state j) 2))
+        )
 
         (or 
             (= i j)
@@ -232,11 +232,6 @@
         )
 
         (not (= next_token (token i)))
-
-        ;;(or 
-        ;;    (not (= (state i) 2))
-        ;;    (= to_serve (token i))
-        ;;)
 
         (or 
             (<= 1 (token j))
