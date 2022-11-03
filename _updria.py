@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # UPDRIA PROTOTYPE 
-from typing import Dict, NamedTuple
+from typing import Dict, List, NamedTuple
 from xml.dom import NotSupportedErr
 from mathsat import *
 import sys
@@ -115,6 +115,25 @@ def split_quantifier(t):
         qvars.append(arg(t, 0))
         t = arg(t, 1)
     return kind, qvars, t
+
+def split_quantifier_map(t):
+    
+    qvar_map = {}
+
+    def visit(env, t, pre):
+        nonlocal qvar_map
+        if pre:
+            if msat_term_is_forall(env, t):
+                v = msat_term_get_arg(t, 0)
+                qvar_map[v] = FORALL
+            elif msat_term_is_exists(env, t):
+                v = msat_term_get_arg(t, 0)
+                qvar_map[v] = EXISTS
+            
+        return MSAT_VISIT_PROCESS
+
+    msat_visit_term(env, t, visit)
+    return qvar_map
 
 
 def nextvar(v):
@@ -239,7 +258,7 @@ cti_queue = []
 #frame_coutner is the length of frame_sequence
 frame_coutner = 0
 
-def find_initial_predicates(opts, sorts, init_formula, prop):
+def find_initial_predicates(sorts, init_formula, prop):
 
     predicates = set()
 
@@ -274,7 +293,34 @@ def find_initial_predicates(opts, sorts, init_formula, prop):
     return sorted(predicates, key=msat_term_id)
 
 
+def remove_duplicates(predicates):
+    '''
+    rewrite the free variables in the predicate to remove duplicates such as p(i1) and p(i2)
+    '''
+    norm_predicates = set()
+    norm_dict = {}
+    for p in predicates:
+        freevars = get_free_vars(p)
+        if freevars:
+            for i, x in enumerate(freevars):
+                norm_p  = msat_apply_substitution(env, p, [x], [QVar('%s_%d' % (msat_type_repr(type_(x)), i), type_(x))])
+                if norm_p not in norm_predicates:
+                    norm_predicates.add(norm_p)
+                norm_dict[p] = norm_p
+        else:
+            norm_predicates.add(p)
+
+    norm_dict = dict(sorted(norm_dict.items(), key= lambda x : msat_term_id(x[1]))) 
+    return sorted(norm_predicates, key=msat_term_id), norm_dict
+
+
 def get_abstract_predicates(predicates):
+    '''
+    this function takes a set of predicates 
+    first, it normalize them (remove_duplicates) 
+    then, defines new set of boolean predicates x_{old-name}    
+    '''
+    predicates, norm_dict = remove_duplicates(predicates)
     new_preds = {p : FALSE() for p in predicates}
     abstract_vars = set()
     for p in predicates:
@@ -290,29 +336,29 @@ def get_abstract_predicates(predicates):
             f = Var('x_%s' % (smt2(p)), BOOL)
             abstract_vars.add(msat_term_get_decl(f))
             new_preds[p] = f
-            
     
-    return new_preds, sorted(abstract_vars, key=msat_decl_id)
+    new_preds = dict(sorted(new_preds.items(), key= lambda x : msat_term_id(x[1])))       
+    return new_preds, sorted(abstract_vars, key=msat_decl_id), norm_dict
 
 
-def remove_duplicates(abstract_predicates):
+def substitute_index_predicates(formula, abstract_predicates_dict, norm_dict):
     '''
-    rewrite the free variables in the predicate to remove duplicates as p(i1) and p(i2)
-    '''
-    norm_predicates_dict = dict()
-
-    for p in abstract_predicates:
-        freevars = get_free_vars(p)
-        if freevars:
-            for i, x in enumerate(freevars):
-                norm_p  = msat_apply_substitution(env, p, [x], [QVar('%s_%d' % (msat_type_repr(type_(x)), i), type_(x))])
-                if norm_p not in norm_predicates_dict:
-                    norm_predicates_dict[norm_p] = msat_apply_substitution(env, abstract_predicates[p], \
-                        [x], [QVar('%s_%d' % (msat_type_repr(type_(x)), i), type_(x))])
+    we substitute the predicates in the initial formula and in the property
+    we use norm_dict to remembed the original predicates which were normalizing via a renaming of the index var
+    '''    
+    hat_formula = formula
+    for p in abstract_predicates_dict:
+        idx_vars = get_free_vars(p)
+        if not idx_vars:
+            hat_formula = substitute(hat_formula, [p], [abstract_predicates_dict[p]])
         else:
-            norm_predicates_dict[p] = abstract_predicates[p]
-    
-    return norm_predicates_dict
+            for old_p in norm_dict:
+                if str(norm_dict[old_p]) == str(p):
+                    new_vars = get_free_vars(old_p)
+                    hat_formula = substitute(hat_formula, [old_p], \
+                        [substitute(abstract_predicates_dict[p], idx_vars, new_vars)])
+
+    return hat_formula
 
 
 def get_h_formula(abstract_predicates):
@@ -762,14 +808,15 @@ def substitute_diagram(diagram, predicates_dict, abs_vars):
     return body
 
 
-def get_concrete_bmc_formula(cti_queue, paramts): 
+def get_concrete_bmc_formula(cti_queue, paramts, sizess): 
     '''
     takes the cti queue and a paramts
     return the bmc as mathsat formula
     '''
     return [FALSE()]
 
-def concretize_cti_queue(cti_queue, paramts):
+
+def concretize_cti_queue(cti_queue : List[Cti], paramts : ParametricTransitionSystem):
     '''
     this function returns a triple 
         - a boolean flag (true if a real cti is found)
@@ -777,7 +824,15 @@ def concretize_cti_queue(cti_queue, paramts):
         - a set of predicates or None
     ''' 
 
-    bmc_list_formula = get_concrete_bmc_formula(cti_queue, paramts)
+    sizes = {s : 1 for s in paramts.sorts} 
+    for c in cti_queue:
+        for s in paramts.sorts:
+            n = len(c.universe_dict[s])
+            if  n > sizes[s]:
+                sizes[s] = n
+    
+    bmc_list_formula = get_concrete_bmc_formula(cti_queue, paramts, sizes)
+    
     wenv = msat_create_shared_env({'interpolation' : 'true'}, env)
     
     for f in bmc_list_formula:
@@ -799,6 +854,7 @@ def concretize_cti_queue(cti_queue, paramts):
     else: 
         raise AssertionError('Ground BMC queries should be either sat or unsat')
 
+
 def print_cex(cex):
     '''
     this function should print out the counterexample 
@@ -807,20 +863,22 @@ def print_cex(cex):
     '''
     pass
 
+
 def updria(opts, paramts : ParametricTransitionSystem):
     global frame_sequence, cti_queue, frame_counter
 
-    predicates = find_initial_predicates(opts, paramts.sorts, paramts.init, paramts.prop) 
-    abstract_predicates_dict, abs_vars = get_abstract_predicates(predicates)
-    H_formula = get_h_formula(abstract_predicates_dict)
+    predicates = find_initial_predicates(paramts.sorts, paramts.init, paramts.prop) 
+    abstract_predicates_dict, abs_vars, norm_dict  = get_abstract_predicates(predicates)
     #compute abstraction of initial formula and property
-    hat_init = substitute(paramts.init, \
-        list(abstract_predicates_dict), list(abstract_predicates_dict.values()))
+    
+    hat_init = substitute_index_predicates(paramts.init, abstract_predicates_dict, norm_dict)
+    hat_prop = substitute_index_predicates(paramts.prop, abstract_predicates_dict, norm_dict)
+    #print(hat_init)
+    #print(hat_prop)
 
-    hat_prop = substitute(paramts.prop, \
-        list(abstract_predicates_dict), list(abstract_predicates_dict.values()))
+    H_formula = get_h_formula(abstract_predicates_dict)
+    #print(H_formula)
 
-    abstract_predicates_dict = remove_duplicates(abstract_predicates_dict)
     # here we switch to z3. probabily using string is inefficent
     # we should use convertor (pystm?) from mathsat to z3
     # convertor is avaible only for predicates
@@ -872,7 +930,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
                             banner('diagram at step %d' %(i))
                             concrete_d = substitute_diagram(c.diagram, abstract_predicates_dict, abs_vars)
                             print(str(concrete_d))
-                        return -1
+                            s.reset()
+                        return VerificationResult(UNKNOWN, cti_queue)
                         # spurious, cex, new_preds_dict = concretize_cti_queue(cti_queue, paramts)
                         # if not spurious:
                         #     print('Concrete conterexample is found!')                        
@@ -902,17 +961,21 @@ def updria(opts, paramts : ParametricTransitionSystem):
         print('propagation phase...')
         for i in range(1, frame_counter):
             for d in frame_sequence[i]:
-                if d not in frame_sequence[i+1]:
+                flag_all_passed = True
+                if True:
                     f = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[i+1], \
                         Not(d), abstract_predicates_dict, H_formula, hat_init)
                     s1 = Solver()
                     s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
                     if s1.check() == z3.unsat:
                         frame_sequence[i+1].append(d)
+                    else:
+                        flag_all_passed = False
                     s.reset()
                 
-            if set(frame_sequence[i]) == set(frame_sequence[i+1]):
+            if flag_all_passed and i == frame_counter - 1:
                 print('Proved! Inductive invariant:')
                 for x in frame_sequence[i+1]:
                     print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
                 return VerificationResult(SAFE, frame_sequence[i])
+        
