@@ -198,10 +198,9 @@ def get_free_vars(formula):
 
     def get_vars(e: msat_env, term : msat_term, pre : bool):
         nonlocal free_vars 
-        if pre:
-            if msat_term_is_variable(e, term):
-                if term not in set(free_vars):
-                    free_vars.append(term)   
+        if msat_term_is_variable(e, term):
+            if term not in set(free_vars):
+                free_vars.append(term)   
 
         if not pre:        
             if msat_term_is_forall(e, term) or msat_term_is_exists(e, term):
@@ -270,14 +269,14 @@ def find_initial_predicates(sorts, init_formula, prop):
                     #equality among index variables
                     pass
 
-                #if predicates among indexes, skip
+                #we could skip this and simply considering all index predicates
                 #maybe consider using this with an option
                 elif msat_term_is_uf(env, t):
                     d = msat_term_get_decl(d)
-                    index_sort_flag = True
-                    for i in range(msat_decl_get_arity(d)):
-                        if msat_type_repr(msat_decl_get_arg_type(d, i)) not in sorts:
-                            index_sort_flag = False
+                    index_sort_flag = False
+                    # for i in range(msat_decl_get_arity(d)):
+                    #     if msat_type_repr(msat_decl_get_arg_type(d, i)) in sorts:
+                    #         index_sort_flag = True
 
                     if not index_sort_flag:
                         predicates.add(t)
@@ -302,15 +301,17 @@ def remove_duplicates(predicates):
     for p in predicates:
         freevars = get_free_vars(p)
         if freevars:
+            norm_p = p
             for i, x in enumerate(freevars):
-                norm_p  = msat_apply_substitution(env, p, [x], [QVar('%s_%d' % (msat_type_repr(type_(x)), i), type_(x))])
-                if norm_p not in norm_predicates:
-                    norm_predicates.add(norm_p)
-                norm_dict[p] = norm_p
+                norm_p  = msat_apply_substitution(env, norm_p, [x], [QVar('%s_%d' % (msat_type_repr(type_(x)), i), type_(x))])
+            if norm_p not in norm_predicates:
+                norm_predicates.add(norm_p)
+            norm_dict[p] = norm_p
         else:
             norm_predicates.add(p)
 
     norm_dict = dict(sorted(norm_dict.items(), key= lambda x : msat_term_id(x[1]))) 
+
     return sorted(norm_predicates, key=msat_term_id), norm_dict
 
 
@@ -351,12 +352,14 @@ def substitute_index_predicates(formula, abstract_predicates_dict, norm_dict):
         idx_vars = get_free_vars(p)
         if not idx_vars:
             hat_formula = substitute(hat_formula, [p], [abstract_predicates_dict[p]])
-        else:
-            for old_p in norm_dict:
-                if str(norm_dict[old_p]) == str(p):
-                    new_vars = get_free_vars(old_p)
-                    hat_formula = substitute(hat_formula, [old_p], \
-                        [substitute(abstract_predicates_dict[p], idx_vars, new_vars)])
+
+    for old_p in norm_dict:
+        for p in abstract_predicates_dict:
+            if str(norm_dict[old_p]) == str(p):
+                new_vars = get_free_vars(old_p)
+                idx_vars = get_free_vars(p)
+                hat_formula = substitute(hat_formula, [old_p], \
+                    [substitute(abstract_predicates_dict[p], idx_vars, new_vars)])
 
     return hat_formula
 
@@ -667,6 +670,10 @@ def minimize_core(s):
 
 
 def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_formula, hat_init):
+    '''
+    this function generalize the diagram
+    and create a SET OF LITERALS with possibly existentially quantified variables    
+    '''
     kind, qf, body = split_quantifier(diagram)
     assert kind == EXISTS
     def collect(e, tag, formula):
@@ -713,6 +720,7 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     qf = get_free_vars(g_diagram)
     for v in qf: 
         g_diagram = Exists(v, g_diagram)
+    
     return g_diagram
 
 
@@ -869,12 +877,14 @@ def updria(opts, paramts : ParametricTransitionSystem):
 
     predicates = find_initial_predicates(paramts.sorts, paramts.init, paramts.prop) 
     abstract_predicates_dict, abs_vars, norm_dict  = get_abstract_predicates(predicates)
+
+    #additional index predicates can be already in the signature...
+
     #compute abstraction of initial formula and property
-    
     hat_init = substitute_index_predicates(paramts.init, abstract_predicates_dict, norm_dict)
     hat_prop = substitute_index_predicates(paramts.prop, abstract_predicates_dict, norm_dict)
     #print(hat_init)
-    #print(hat_prop)
+    print(hat_prop)
 
     H_formula = get_h_formula(abstract_predicates_dict)
     #print(H_formula)
