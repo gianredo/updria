@@ -9,6 +9,7 @@ import functools
 from collections import namedtuple
 import argparse
 from z3 import *
+import random
 
 #-----------------------------------------------------------------------------
 # user-configurable options
@@ -116,6 +117,7 @@ def split_quantifier(t):
         t = arg(t, 1)
     return kind, qvars, t
 
+
 def split_quantifier_map(t):
     
     qvar_map = {}
@@ -194,24 +196,98 @@ def is_qvar(t): return msat_term_is_variable(env, t)
 
 
 def get_free_vars(formula):
-    free_vars = list()
+    found_vars = set()
+    not_free_vars = set()
 
     def get_vars(e: msat_env, term : msat_term, pre : bool):
-        nonlocal free_vars 
-        if msat_term_is_variable(e, term):
-            if term not in set(free_vars):
-                free_vars.append(term)   
+        nonlocal found_vars
+        if not pre:
+            if msat_term_is_variable(e, term):
+                if term not in set(found_vars):
+                    found_vars.add(term)   
 
+        return MSAT_VISIT_PROCESS
+
+
+    def remove_quantified(e, t, pre):
+        nonlocal not_free_vars, found_vars
         if not pre:        
-            if msat_term_is_forall(e, term) or msat_term_is_exists(e, term):
-                for var in free_vars:
-                    if name(var) == name(msat_term_get_arg(term, 0)):
-                        free_vars.remove(var)                                     
+            if msat_term_is_forall(e, t) or msat_term_is_exists(e, t):
+                for var in found_vars:
+                    if name(var) == name(msat_term_get_arg(t, 0)):
+                        not_free_vars.add(var)                                     
 
         return MSAT_VISIT_PROCESS     
     
     msat_visit_term(env, formula, get_vars)
-    return free_vars
+    msat_visit_term(env, formula, remove_quantified)
+    return sorted(found_vars.difference(not_free_vars), key=msat_term_id)
+
+
+def number_quantifiers(env : msat_env, formula : msat_term) -> int:
+    num = 0
+    ## count number of quanfitified variables in formula
+    def count(env: msat_env, term : msat_term, pre):
+        nonlocal num
+        if pre:
+            if msat_term_is_forall(env, term) or msat_term_is_exists(env, term):
+                num += 1
+        return MSAT_VISIT_PROCESS
+
+    msat_visit_term(env, formula, count)
+    return num 
+
+
+def renaming(env : msat_env, formula : msat_term, counter : int) -> msat_term:
+ 
+    #perform necessary renaming to change all the names of quantified variables
+    #recursive definition, probabily not the best
+
+    # if formula is A * B, 
+    #return *(renaming(env, A, counter), renaming(env, B, counter + nq(A)))
+
+    #if formula is neg(A)
+    #return not(renaming(env, A, counter))
+
+    #if formula is exists x. phi(x)
+    #return exists fresh(x, counter). renaming(env, phi(x -> x,coutner), coutner + 1)
+      
+    #if formula is forall x. phi(x)
+    #return forall fresh(x, counter). renaming(env, phi(x -> x,coutner), coutner + 1)
+           
+    # if formula is atomic
+    #return formla
+    if msat_term_is_and(env, formula):
+        A = msat_term_get_arg(formula, 0)
+        B = msat_term_get_arg(formula, 1)
+        return msat_make_and(env, renaming(env, A, counter), renaming(env, B, counter + number_quantifiers(env, A)))
+
+    if msat_term_is_or(env, formula):
+        A = msat_term_get_arg(formula, 0)
+        B = msat_term_get_arg(formula, 1)
+        return msat_make_or(env, renaming(env, A, counter), renaming(env, B, counter + number_quantifiers(env, A)))
+
+    if msat_term_is_not(env, formula):
+        A = msat_term_get_arg(formula, 0)
+        return msat_make_not(env, renaming(env, A, counter))
+    
+    if msat_term_is_forall(env, formula):
+        var = msat_term_get_arg(formula, 0)
+        new_var = QVar(msat_type_repr(type_(var))+'_'+str(counter), msat_term_get_type(var))
+        body = msat_term_get_arg(formula, 1)
+        new_body = msat_apply_substitution(env, body, [var], [new_var])
+        return msat_make_forall(env, new_var, renaming(env, new_body, counter + 1))
+
+    if msat_term_is_exists(env, formula):
+        var = msat_term_get_arg(formula, 0)
+        new_var = QVar(msat_type_repr(type_(var))+'_'+str(counter), msat_term_get_type(var))
+        body = msat_term_get_arg(formula, 1)
+        new_body = msat_apply_substitution(env, body, [var], [new_var])
+        return msat_make_exists(env, new_var, renaming(env, new_body, counter + 1))
+
+    else:
+        return formula
+
 #-----------------------------------------------------------------------------
 # utility functions and statistics
 #-----------------------------------------------------------------------------
@@ -258,28 +334,39 @@ cti_queue = []
 frame_coutner = 0
 
 def find_initial_predicates(sorts, init_formula, prop):
-
+    '''
+    this function mines predicates from the initial formula and the proposition
+    equalities among index vars are ignored
+     - add option to ignore also equalities among constants?
+    
+    '''
     predicates = set()
 
     def find_predicates(env, t, pre): 
         nonlocal predicates
         if not pre:
             if msat_term_is_atom(env, t) and not msat_term_is_quantifier(env, t):
+                #equalities
                 if msat_term_is_equal(env, t) and msat_type_repr(type_(arg(t, 0))) in sorts:
-                    #equality among index variables
-                    pass
-
-                #we could skip this and simply considering all index predicates
-                #maybe consider using this with an option
-                elif msat_term_is_uf(env, t):
-                    d = msat_term_get_decl(d)
-                    index_sort_flag = False
-                    # for i in range(msat_decl_get_arity(d)):
-                    #     if msat_type_repr(msat_decl_get_arg_type(d, i)) in sorts:
-                    #         index_sort_flag = True
-
-                    if not index_sort_flag:
+                    arg_1 = msat_term_get_arg(t, 0)
+                    arg_2 = msat_term_get_arg(t, 1)
+                    if msat_term_is_variable(env, arg_1) and msat_term_is_variable(env, arg_2):
+                        #equality among index variables
+                        pass
+                    else:
                         predicates.add(t)
+
+                # #we could skip this and simply considering all index predicates
+                # #maybe consider using this with an option
+                # elif msat_term_is_uf(env, t):
+                #     d = msat_term_get_decl(d)
+                #     index_sort_flag = False
+                #     # for i in range(msat_decl_get_arity(d)):
+                #     #     if msat_type_repr(msat_decl_get_arg_type(d, i)) in sorts:
+                #     #         index_sort_flag = True
+
+                #     if not index_sort_flag:
+                #         predicates.add(t)
 
                 else:
                     predicates.add(t)
@@ -289,12 +376,14 @@ def find_initial_predicates(sorts, init_formula, prop):
     msat_visit_term(env, init_formula, find_predicates)
     msat_visit_term(env, prop, find_predicates)
 
+    #sort the predicates with msat_term_id
+
     return sorted(predicates, key=msat_term_id)
 
 
 def remove_duplicates(predicates):
     '''
-    rewrite the free variables in the predicate to remove duplicates such as p(i1) and p(i2)
+    we rewrite index variables in predicates with qvars named '<type>_<position>' where position 
     '''
     norm_predicates = set()
     norm_dict = {}
@@ -319,7 +408,11 @@ def get_abstract_predicates(predicates):
     '''
     this function takes a set of predicates 
     first, it normalize them (remove_duplicates) 
-    then, defines new set of boolean predicates x_{old-name}    
+    then, defines new set of boolean predicates x_{unique_id}
+    it returns: 
+        - a dictionary {old_predicate : new_predicate}
+        - the set of abstract_variables (x_{unique_id} as boolean function declaration)
+        - a dictionary for normalized predicates  which will be used for the substitution   
     '''
     predicates, norm_dict = remove_duplicates(predicates)
     new_preds = {p : FALSE() for p in predicates}
@@ -330,11 +423,11 @@ def get_abstract_predicates(predicates):
             #define a fresh boolean symbol
             #the ariety is the number of free vars in p
             tp = msat_get_function_type(env, [type_(x) for x in vars], BOOL)
-            f = msat_declare_function(env, 'x_%s' % (smt2(p)), tp)
+            f = msat_declare_function(env, 'x_%d' % (msat_term_id(p)), tp)
             abstract_vars.add(f)
             new_preds[p] = msat_make_uf(env, f, vars)
         else:  
-            f = Var('x_%s' % (smt2(p)), BOOL)
+            f = Var('x_%s' % (msat_term_id(p)), BOOL)
             abstract_vars.add(msat_term_get_decl(f))
             new_preds[p] = f
     
@@ -345,6 +438,8 @@ def get_abstract_predicates(predicates):
 def substitute_index_predicates(formula, abstract_predicates_dict, norm_dict):
     '''
     we substitute the predicates in the initial formula and in the property
+    first, we substitute predicates without idx variables
+    then, we look at the norm_dictionary and
     we use norm_dict to remembed the original predicates which were normalizing via a renaming of the index var
     '''    
     hat_formula = formula
@@ -355,11 +450,15 @@ def substitute_index_predicates(formula, abstract_predicates_dict, norm_dict):
 
     for old_p in norm_dict:
         for p in abstract_predicates_dict:
-            if str(norm_dict[old_p]) == str(p):
-                new_vars = get_free_vars(old_p)
+            if norm_dict[old_p] == p:
+                #look for a unifier i.e. a substitution sigma such that 
+                # p [sigma] = old_p
                 idx_vars = get_free_vars(p)
-                hat_formula = substitute(hat_formula, [old_p], \
-                    [substitute(abstract_predicates_dict[p], idx_vars, new_vars)])
+                for subs in itertools.product(get_free_vars(old_p), repeat=len(idx_vars)):
+                    if substitute(p, idx_vars, subs) == old_p:
+                        hat_formula = substitute(hat_formula, [old_p], \
+                            [substitute(abstract_predicates_dict[p], idx_vars, subs)])
+                        break 
 
     return hat_formula
 
@@ -648,6 +747,8 @@ def minimize_core_aux2(s, core):
     mus = []
     ids = {}
     while core != []:
+        random.seed(42)
+        random.shuffle(core)
         c = core[0]
         new_core = mus + core[1:]
         is_sat = s.check(new_core)
@@ -662,9 +763,9 @@ def minimize_core_aux2(s, core):
 
 
 def minimize_core(s):
-    core = list(s.unsat_core())
-#    print "minimize_core: core = {}".format(core)
+    core = s.unsat_core()
     core = minimize_core_aux2(s, core)
+    
 #    print "minimize_core: core = {}".format(core)
     return core
 
@@ -672,7 +773,7 @@ def minimize_core(s):
 def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_formula, hat_init):
     '''
     this function generalize the diagram
-    and create a SET OF LITERALS with possibly existentially quantified variables    
+    returns a set of literals with possibly existentially quantified variables    
     '''
     kind, qf, body = split_quantifier(diagram)
     assert kind == EXISTS
@@ -692,7 +793,7 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
             else:
                 yield cur
 
-    fmlas = [a for a in collect(env, MSAT_TAG_AND, body)]
+    fmlas = sorted([a for a in collect(env, MSAT_TAG_AND, body)], key=msat_term_id)
     alits = [Var("__c%s" % n, BOOL) for n,c in enumerate(fmlas)]
     z3_alits = [z3.Const("__c%s" % n, z3.BoolSort()) for n,c in enumerate(fmlas)]
     cc = [Or(Not(a),c) for a,c in zip(alits,fmlas)]
@@ -707,14 +808,12 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     s2.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
     
     is_sat = s2.check(z3_alits)
-    if is_sat == z3.sat:
-        return None
-    else:
-        core = minimize_core(s2)
+    assert is_sat == z3.unsat
+    core = minimize_core(s2)
     
-    s2.reset()
+    s2.__del__()
     core_ids = [get_id(a) for a in core]
-    res = [c for a,c in zip(z3_alits,fmlas) if get_id(a) in core_ids]
+    res = sorted([c for a,c in zip(z3_alits,fmlas) if get_id(a) in core_ids], key=msat_term_id)
 
     g_diagram = And(*res)
     qf = get_free_vars(g_diagram)
@@ -731,10 +830,10 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
         return False
    
     else:    
-        #check if the cti is reachable from the last frame              
-        
+        #check if the cti is reachable from the last frame                     
         print('trying to block cex at frame %d' %cti.frame_number)
-        # print('trying to block diagram %s' %smt2(cti.diagram))
+        
+        # print('trying to block diagram %s' %(substitute_diagram(cti.diagram, predicates_dict, abs_vars)))
         abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[cti.frame_number-1],\
              cti.diagram, predicates_dict, H_formula, hat_init)
 
@@ -747,25 +846,24 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
             print('generalizing diagram...')
             gen_diagram = generalize_diagram(paramts, abs_vars, frame_sequence[cti.frame_number-1],\
              cti.diagram, predicates_dict, H_formula, hat_init)
-            # print(gen_diagram)
-            # # add diagram to all frames from 1 to frame_number
+            # add diagram to all frames from 1 to frame_number
             for i in range(1, cti.frame_number + 1):
                 if Not(gen_diagram) not in set(frame_sequence[i]):
                     frame_sequence[i].append(Not(gen_diagram)) 
-            s.reset()
+            s.__del__()
             return True
 
         elif s.check() == z3.sat:
             model = s.model()
             n_diagram, universe_dict = extract_diagram(predicates_dict.values(), model, paramts.sorts)
-            s.reset()
+            s.__del__()
             print('failed...')
             cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1))
             return True
 
         else:
             assert str(s.check) == 'unknown'
-            s.reset()
+            s.__del__()
             raise NotImplementedError
 
 
@@ -873,10 +971,14 @@ def print_cex(cex):
 
 
 def updria(opts, paramts : ParametricTransitionSystem):
-    global frame_sequence, cti_queue, frame_counter
-
+    global frame_sequence, cti_queue, frame_counter 
     predicates = find_initial_predicates(paramts.sorts, paramts.init, paramts.prop) 
     abstract_predicates_dict, abs_vars, norm_dict  = get_abstract_predicates(predicates)
+    
+    # for x in abstract_predicates_dict:
+    #     print(x)
+    #     print(abstract_predicates_dict[x])
+    # return -1
 
     #additional index predicates can be already in the signature...
 
@@ -884,7 +986,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
     hat_init = substitute_index_predicates(paramts.init, abstract_predicates_dict, norm_dict)
     hat_prop = substitute_index_predicates(paramts.prop, abstract_predicates_dict, norm_dict)
     #print(hat_init)
-    print(hat_prop)
+    #print(hat_prop)
+
 
     H_formula = get_h_formula(abstract_predicates_dict)
     #print(H_formula)
@@ -913,6 +1016,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
         assert not cti_queue
         #compute intersection between last frame and bad
         last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
+
         #pass it to z3
         s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True))
         print('Checking intersection between last frame and property...')
@@ -923,6 +1027,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), model, paramts.sorts)
+            #print(diagram)
             s.reset()
             # Aadd a cti in the cti_queue
             print('add cti')
@@ -940,7 +1045,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                             banner('diagram at step %d' %(i))
                             concrete_d = substitute_diagram(c.diagram, abstract_predicates_dict, abs_vars)
                             print(str(concrete_d))
-                            s.reset()
+                        s.__del__()
                         return VerificationResult(UNKNOWN, cti_queue)
                         # spurious, cex, new_preds_dict = concretize_cti_queue(cti_queue, paramts)
                         # if not spurious:
@@ -956,10 +1061,10 @@ def updria(opts, paramts : ParametricTransitionSystem):
 
                     # refine predicates or exit with a concrete cex                    
 
-            else:
-                last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
-                s.reset()
-                s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True))        
+            # blocked cex, recompute last formula to see wheter there are more models
+            last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
+            s.reset()
+            s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True))        
     
         frame_counter += 1
         print('Add new counter %d' %frame_counter)
@@ -971,21 +1076,18 @@ def updria(opts, paramts : ParametricTransitionSystem):
         print('propagation phase...')
         for i in range(1, frame_counter):
             for d in frame_sequence[i]:
-                flag_all_passed = True
-                if True:
+                if d not in set(frame_sequence[i+1]):
                     f = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[i+1], \
                         Not(d), abstract_predicates_dict, H_formula, hat_init)
                     s1 = Solver()
                     s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
                     if s1.check() == z3.unsat:
                         frame_sequence[i+1].append(d)
-                    else:
-                        flag_all_passed = False
-                    s.reset()
+                    s1.reset()
                 
-            if flag_all_passed and i == frame_counter - 1:
+            if set(frame_sequence[i]) == set(frame_sequence[i+1]):
                 print('Proved! Inductive invariant:')
-                for x in frame_sequence[i+1]:
+                for x in frame_sequence[i]:
                     print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
                 return VerificationResult(SAFE, frame_sequence[i])
         
