@@ -820,6 +820,7 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     for v in qf: 
         g_diagram = Exists(v, g_diagram)
     
+    g_diagram = renaming(env, g_diagram, 0)
     return g_diagram
 
 
@@ -850,20 +851,20 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
             for i in range(1, cti.frame_number + 1):
                 if Not(gen_diagram) not in set(frame_sequence[i]):
                     frame_sequence[i].append(Not(gen_diagram)) 
-            s.__del__()
+            del s
             return True
 
         elif s.check() == z3.sat:
             model = s.model()
             n_diagram, universe_dict = extract_diagram(predicates_dict.values(), model, paramts.sorts)
-            s.__del__()
+            del s
             print('failed...')
             cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1))
             return True
 
         else:
             assert str(s.check) == 'unknown'
-            s.__del__()
+            del s
             raise NotImplementedError
 
 
@@ -1045,7 +1046,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                             banner('diagram at step %d' %(i))
                             concrete_d = substitute_diagram(c.diagram, abstract_predicates_dict, abs_vars)
                             print(str(concrete_d))
-                        s.__del__()
+                        del s
                         return VerificationResult(UNKNOWN, cti_queue)
                         # spurious, cex, new_preds_dict = concretize_cti_queue(cti_queue, paramts)
                         # if not spurious:
