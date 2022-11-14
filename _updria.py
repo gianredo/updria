@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # UPDRIA PROTOTYPE 
+import argparse
+import functools
+import itertools
+import random
+import sys
+from collections import namedtuple
 from typing import Dict, List, NamedTuple
 from xml.dom import NotSupportedErr
+
 from mathsat import *
-import sys
-import itertools
-import functools
-from collections import namedtuple
-import argparse
 from z3 import *
-import random
 
 #-----------------------------------------------------------------------------
 # user-configurable options
@@ -190,8 +191,6 @@ def QVar(name, sort):
         res = msat_make_variable(env, name, sort)
         _qvars[name] = res
     return res
-
-
 def is_qvar(t): return msat_term_is_variable(env, t)
 
 
@@ -202,7 +201,7 @@ def get_free_vars(formula):
     def get_vars(e: msat_env, term : msat_term, pre : bool):
         nonlocal found_vars
         if not pre:
-            if msat_term_is_variable(e, term):
+            if is_qvar(term):
                 if term not in set(found_vars):
                     found_vars.add(term)   
 
@@ -350,7 +349,7 @@ def find_initial_predicates(sorts, init_formula, prop):
                 if msat_term_is_equal(env, t) and msat_type_repr(type_(arg(t, 0))) in sorts:
                     arg_1 = msat_term_get_arg(t, 0)
                     arg_2 = msat_term_get_arg(t, 1)
-                    if msat_term_is_variable(env, arg_1) and msat_term_is_variable(env, arg_2):
+                    if is_qvar(arg_1) and is_qvar(arg_2):
                         #equality among index variables
                         pass
                     else:
@@ -491,22 +490,6 @@ def convert_predicate(env, p):
     '''
     convert an atomic predicate from mathsat to z3    
     '''
-    # #FAILED
-    # from pysmt.solvers.msat import MSatConverter
-    # from pysmt.solvers.z3 import Z3Converter 
-    # from pysmt.shortcuts import get_env
-
-    # env_wrap = lambda: env
-    # msatconv = MSatConverter(get_env(), env_wrap)
-    # #print(p)
-    # pysmt_pred = msatconv.back(p)
-    # #print(pysmt_pred)
-    # #z3conv = Z3Converter(get_env())
-    # #z3_pred = z3conv.convert(pysmt_pred)
-    # #print(z3_pred)
-    
-    # #very simplified version 
-
     import z3
     z3_atom = True
     cache = {}
@@ -519,7 +502,7 @@ def convert_predicate(env, p):
             #     cache[term] = z3_term
             #     return MSAT_VISIT_PROCESS
 
-            if msat_term_is_variable(env, term):
+            if is_qvar(term):
                 z3_term = z3.Var(msat_term_id(term), convert_type(env, type_(term)))
                 cache[term] = z3_term
                 return MSAT_VISIT_PROCESS
@@ -735,6 +718,7 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
     formula = And(And(*frame), t_bar, H_formula, H_formula_next, Not(diagram), EQ_formula_1, EQ_formula_2)
     if initial_constr: 
         formula = Or(formula, next_abs_init)
+    
     formula = And(formula, next_diagram)
     return formula
 
@@ -747,8 +731,6 @@ def minimize_core_aux2(s, core):
     mus = []
     ids = {}
     while core != []:
-        random.seed(42)
-        random.shuffle(core)
         c = core[0]
         new_core = mus + core[1:]
         is_sat = s.check(new_core)
@@ -758,13 +740,20 @@ def minimize_core_aux2(s, core):
             core = core[1:]
         else:
             core = s.unsat_core()
+            core = sorted(core, key=get_id)
+            # order core in some method
             core = [c for c in core if get_id(c) not in ids]
     return mus
 
 
 def minimize_core(s):
     core = s.unsat_core()
+    core = sorted(core, key=get_id)
+
+    # order core in some method
     core = minimize_core_aux2(s, core)
+    core = sorted(core, key=get_id)
+    # order here
     
 #    print "minimize_core: core = {}".format(core)
     return core
@@ -811,7 +800,7 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     assert is_sat == z3.unsat
     core = minimize_core(s2)
     
-    s2.__del__()
+    s2.reset()
     core_ids = [get_id(a) for a in core]
     res = sorted([c for a,c in zip(z3_alits,fmlas) if get_id(a) in core_ids], key=msat_term_id)
 
@@ -821,6 +810,33 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
         g_diagram = Exists(v, g_diagram)
     
     g_diagram = renaming(env, g_diagram, 0)
+
+    # def ok(g_diagram, diagram):
+    #     s2 = z3.Solver()
+    #     f1 = Implies(Not(g_diagram), Not(diagram))
+    #     f2 = Implies(hat_init, Not(g_diagram))
+    #     print(f2)
+    #     s2.from_string(msat_to_smtlib2_ext(env, Not(f1), 'ALL', True))
+    #     if s2.check() == z3.sat:
+    #         print('not a generalization')
+    #         return False
+    #     s2.reset()
+    #     s2.from_string(msat_to_smtlib2_ext(env, Not(f2), 'ALL', True))
+    #     if s2.check() == z3.sat:
+    #         print('falsified initial')
+    #         return False
+    #     s2.reset()
+    #     return True
+    # assert ok(g_diagram, diagram)
+    
+    # s2.reset()
+    # abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars, frame, g_diagram,\
+    #      predicates_dict, e, hat_init, True)
+    # s2.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
+    # is_sat = s2.check(z3_alits)
+    # assert is_sat == z3.unsat
+
+
     return g_diagram
 
 
@@ -851,20 +867,20 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
             for i in range(1, cti.frame_number + 1):
                 if Not(gen_diagram) not in set(frame_sequence[i]):
                     frame_sequence[i].append(Not(gen_diagram)) 
-            del s
+            s.reset()
             return True
 
         elif s.check() == z3.sat:
             model = s.model()
             n_diagram, universe_dict = extract_diagram(predicates_dict.values(), model, paramts.sorts)
-            del s
+            s.reset()
             print('failed...')
             cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1))
             return True
 
         else:
             assert str(s.check) == 'unknown'
-            del s
+            s.reset()
             raise NotImplementedError
 
 
@@ -915,53 +931,6 @@ def substitute_diagram(diagram, predicates_dict, abs_vars):
     return body
 
 
-def get_concrete_bmc_formula(cti_queue, paramts, sizess): 
-    '''
-    takes the cti queue and a paramts
-    return the bmc as mathsat formula
-    '''
-    return [FALSE()]
-
-
-def concretize_cti_queue(cti_queue : List[Cti], paramts : ParametricTransitionSystem):
-    '''
-    this function returns a triple 
-        - a boolean flag (true if a real cti is found)
-        - the real cti or None
-        - a set of predicates or None
-    ''' 
-
-    sizes = {s : 1 for s in paramts.sorts} 
-    for c in cti_queue:
-        for s in paramts.sorts:
-            n = len(c.universe_dict[s])
-            if  n > sizes[s]:
-                sizes[s] = n
-    
-    bmc_list_formula = get_concrete_bmc_formula(cti_queue, paramts, sizes)
-    
-    wenv = msat_create_shared_env({'interpolation' : 'true'}, env)
-    
-    for f in bmc_list_formula:
-        msat_assert_formula(wenv, f)
-        
-    print(msat_last_error_message(wenv))
-    res = msat_solve(wenv)
-    if res == MSAT_SAT:
-        witness = []
-        ## compute witness
-        pass
-        return True, False, None
-    elif res == MSAT_UNSAT:
-        ## compute interpolants
-        ## not sure if i have to redo every
-        new_preds_dict = []
-        return False, None, new_preds_dict
-    
-    else: 
-        raise AssertionError('Ground BMC queries should be either sat or unsat')
-
-
 def print_cex(cex):
     '''
     this function should print out the counterexample 
@@ -979,17 +948,12 @@ def updria(opts, paramts : ParametricTransitionSystem):
     # for x in abstract_predicates_dict:
     #     print(x)
     #     print(abstract_predicates_dict[x])
-    # return -1
-
-    #additional index predicates can be already in the signature...
 
     #compute abstraction of initial formula and property
     hat_init = substitute_index_predicates(paramts.init, abstract_predicates_dict, norm_dict)
     hat_prop = substitute_index_predicates(paramts.prop, abstract_predicates_dict, norm_dict)
     #print(hat_init)
     #print(hat_prop)
-
-
     H_formula = get_h_formula(abstract_predicates_dict)
     #print(H_formula)
 
@@ -1005,9 +969,9 @@ def updria(opts, paramts : ParametricTransitionSystem):
     else: 
         print('no initial cex! Entering main loop \n') 
     s.reset()
-
     # initialize frame sequence
     frame_counter = 1
+    #print(hat_prop)
     frame_sequence.append([hat_init])
     frame_sequence.append([])
     
@@ -1042,13 +1006,14 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     # abstract coutnerexample
                         print('abstract cex')
                         cti_queue.reverse()
-                        for i, c in enumerate(cti_queue):
-                            banner('diagram at step %d' %(i))
-                            concrete_d = substitute_diagram(c.diagram, abstract_predicates_dict, abs_vars)
-                            print(str(concrete_d))
-                        del s
-                        return VerificationResult(UNKNOWN, cti_queue)
-                        # spurious, cex, new_preds_dict = concretize_cti_queue(cti_queue, paramts)
+                        # for i, c in enumerate(cti_queue):
+                        #     banner('diagram at step %d' %(i))
+                        #     concrete_d = substitute_diagram(c.diagram, abstract_predicates_dict, abs_vars)
+                        #     print(str(concrete_d))
+                        s.reset()
+                        
+                        import _grounder
+                        spurious, cex, new_preds_dict = _grounder.concretize_cti_queue(opts, cti_queue, paramts, abstract_predicates_dict, abs_vars)
                         # if not spurious:
                         #     print('Concrete conterexample is found!')                        
                         #     return VerificationResult(UNSAFE, cex)
@@ -1084,11 +1049,21 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
                     if s1.check() == z3.unsat:
                         frame_sequence[i+1].append(d)
+                    # else:
+                    #      print(substitute_diagram(d, abstract_predicates_dict, abs_vars))
                     s1.reset()
                 
-            if set(frame_sequence[i]) == set(frame_sequence[i+1]):
+            if set(frame_sequence[i+1]) == set(frame_sequence[i]):
                 print('Proved! Inductive invariant:')
                 for x in frame_sequence[i]:
                     print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
                 return VerificationResult(SAFE, frame_sequence[i])
-        
+            # f = Implies(And(*frame_sequence[i+1]), And(*frame_sequence[i]))
+            # s3 = z3.Solver()
+            # s3.from_string(msat_to_smtlib2_ext(env, Not(f), 'ALL', True))
+            # if s3.check() == z3.unsat:
+            #     print('Proved! Inductive invariant:')
+            #     for x in frame_sequence[i]:
+            #         print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
+            #     return VerificationResult(SAFE, frame_sequence[i])
+            # s3.reset()
