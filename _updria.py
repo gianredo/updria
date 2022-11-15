@@ -380,14 +380,26 @@ def find_initial_predicates(sorts, init_formula, prop):
     return sorted(predicates, key=msat_term_id)
 
 
-def remove_duplicates(predicates):
+def remove_duplicates(predicates, varlist = None):
     '''
     we rewrite index variables in predicates with qvars named '<type>_<position>' where position 
     '''
     norm_predicates = set()
     norm_dict = {}
     for p in predicates:
-        freevars = get_free_vars(p)
+        if varlist:
+            freevars = []
+            def get_concrete_vars(e: msat_env, term : msat_term, pre : bool):
+                nonlocal freevars, varlist
+                if not pre:
+                    from _grounder import is_prophecy
+                    if is_prophecy(term) and term in varlist[msat_type_repr(type_(term))]:
+                        freevars.append(term)   
+                return MSAT_VISIT_PROCESS
+            msat_visit_term(env, p, get_concrete_vars)
+            freevars = sorted(freevars, key=msat_term_id)
+        else:
+            freevars = get_free_vars(p)
         if freevars:
             norm_p = p
             for i, x in enumerate(freevars):
@@ -403,7 +415,7 @@ def remove_duplicates(predicates):
     return sorted(norm_predicates, key=msat_term_id), norm_dict
 
 
-def get_abstract_predicates(predicates):
+def get_abstract_predicates(predicates, varlist = None):
     '''
     this function takes a set of predicates 
     first, it normalize them (remove_duplicates) 
@@ -413,7 +425,7 @@ def get_abstract_predicates(predicates):
         - the set of abstract_variables (x_{unique_id} as boolean function declaration)
         - a dictionary for normalized predicates  which will be used for the substitution   
     '''
-    predicates, norm_dict = remove_duplicates(predicates)
+    predicates, norm_dict = remove_duplicates(predicates, varlist)
     new_preds = {p : FALSE() for p in predicates}
     abstract_vars = set()
     for p in predicates:
@@ -843,6 +855,8 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
 def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init) -> Bool :
     
     if cti.frame_number == 0:
+        for x in predicates_dict:
+            print(x)
         print('CEX! Violation of the initial formula')
         return False
    
@@ -1013,19 +1027,22 @@ def updria(opts, paramts : ParametricTransitionSystem):
                         s.reset()
                         
                         import _grounder
-                        spurious, cex, new_preds_dict = _grounder.concretize_cti_queue(opts, cti_queue, paramts, abstract_predicates_dict, abs_vars)
-                        # if not spurious:
-                        #     print('Concrete conterexample is found!')                        
-                        #     return VerificationResult(UNSAFE, cex)
-                        # else:
-                        #     # can this happen? 
-                        #     if new_preds_dict.item() <= abstract_predicates_dict.items():
-                        #         return VerificationResult(UNKNOWN, cti_queue)
-                        #     else: 
-                        #         abstract_predicates_dict.update(new_preds_dict)
-                        #         # restart the loop with updated set of predicates
+                        spurious, cex, new_preds, concrete_varlist = _grounder.concretize_cti_queue(opts, cti_queue, paramts, abstract_predicates_dict, abs_vars)
+                        if not spurious:
+                            print('Concrete conterexample is found!')                        
+                            return VerificationResult(UNSAFE, cex)
+                        else: 
+                            new_preds_dict, n_abs_vars, _ = \
+                                get_abstract_predicates(new_preds, concrete_varlist)
 
-                    # refine predicates or exit with a concrete cex                    
+                            # if set(new_preds_dict.values()) <= set(abstract_predicates_dict.values()):
+                            #     print('no new predicates found!')
+                            #     # fail
+                            #     return VerificationResult(UNKNOWN, cti_queue)
+                            abstract_predicates_dict.update(new_preds_dict)
+                            abs_vars += n_abs_vars
+                            break
+                            # restart the loop with updated set of predicates               
 
             # blocked cex, recompute last formula to see wheter there are more models
             last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])

@@ -495,27 +495,30 @@ def get_concrete_bmc_formula(opts, cti_queue, paramts, sizes):
     '''
 
     ts = get_concretization(opts, paramts, sizes, [])
+    concrete_vars = [a[0] for a in ts.statevars]
     varlist = {s : [p_var(i, mksort(s)) for i in range(sizes[s])]
                for s in paramts.sorts}
-
+    vars_at_time = []
 
     for step, diagram in enumerate(cti_queue):
         if step == 0: 
             curr_vars = [Var(name(v) + ".step_%s" %step, type_(v)) for (v, _) in ts.statevars] 
+            vars_at_time.append(curr_vars)
             init_step = And(ts.init, expand_quantifiers(diagram, varlist))
-            init_step = substitute(init_step, [a[0] for a in ts.statevars], curr_vars)
+            init_step = substitute(init_step, concrete_vars, curr_vars)
             unrolling = [init_step]
         else:
-            trans = substitute(ts.trans, [a[0] for a in ts.statevars], curr_vars)
+            trans = substitute(ts.trans, concrete_vars, curr_vars)
             next_vars = [Var(name(v) + ".step_%s" %step, type_(v)) for (v, _) in ts.statevars] 
+            vars_at_time.append(next_vars)
             trans = substitute(trans, [a[1] for a in ts.statevars], next_vars)
             diagram = expand_quantifiers(diagram, varlist)
-            diagram = substitute(diagram, [a[0] for a in ts.statevars], next_vars)
+            diagram = substitute(diagram, concrete_vars, next_vars)
             curr_vars = next_vars
             unrolling.append(And(trans, diagram))
     
     assert len(unrolling) == len(cti_queue)
-    return unrolling
+    return unrolling, vars_at_time, concrete_vars, varlist
 
 
 def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
@@ -532,12 +535,12 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
         for s in paramts.sorts:
             n = len(c.universe_dict[s])
             if  n > sizes[s]:
-                sizes[s] = n
+                sizes[s] = n 
 
     import _updria
     concrete_cti = [_updria.substitute_diagram(c.diagram, predicates_dict, abs_vars) for c in cti_queue]
     
-    bmc_list_formula = get_concrete_bmc_formula(opts, concrete_cti, paramts, sizes)    
+    bmc_list_formula, vars_at_time, concrete_vars, varlist = get_concrete_bmc_formula(opts, concrete_cti, paramts, sizes)    
     groups = []
     wenv = msat_create_shared_env({'interpolation' : 'true'}, env)
     
@@ -552,18 +555,24 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
         ##actually concrete counterexamples
         witness = []
         ## compute witness
-        return -1 
+        return False, witness, None, varlist
     elif res == MSAT_UNSAT:
         print('cex blocked in size %s' %str(sizes))
         ## sprurious counterexample
         ## compute interpolants
         print('extracting interpolants...')
-        for i in range(len(bmc_list_formula)):
+        all_preds = []
+        for i in range(1, len(bmc_list_formula)):
             itp = msat_get_interpolant(wenv, groups[:i])
-            print(itp)
-        new_preds_dict = []
-        return -1
-        return False, None, new_preds_dict
+            itp = substitute(itp, vars_at_time[i-1], concrete_vars)
+            from _updria import find_initial_predicates
+            predicates = find_initial_predicates(paramts.sorts, itp, TRUE())
+            all_preds += predicates
+        
+        # for x in all_preds:
+        #     print(x)
+
+        return True, None, all_preds, varlist
     
     else: 
         raise AssertionError('Ground BMC are expected to be either sat or unsat')
