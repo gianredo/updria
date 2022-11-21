@@ -19,11 +19,13 @@ from z3 import *
 class Options:
     def __init__(self):
         self.vmt_property = 0      
+        self.input_language = 'vmt'
         
 
     def __str__(self):
         return "\n".join(sorted([
             "vmt_property = %s" % self.vmt_property,
+            "input_language = %s " % self.input_language,
             ]))
 # end of class Options
 
@@ -35,6 +37,8 @@ def getopts():
         p.add_argument('--no-%s' % n, action='store_false', dest=dest)
     p.add_argument('--vmt-property', type=int, default=0)
     p.add_argument('infile', nargs='?')
+    p.add_argument('-l', '--input-language',
+                   choices=['vmt', 'mcmt', 'ic3po'])
     opts = Options()
     p.parse_args(namespace=opts)
     return opts
@@ -756,7 +760,6 @@ def minimize_model(solver, sorts):
                 solver.pop()
 
 
-
 def get_id(x):
     return Z3_get_ast_id(x.ctx_ref(), x.as_ast())
 
@@ -891,6 +894,7 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
 
         s = Solver()     
         s.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
+
         if s.check() == z3.unsat:      
             print('blocked')          
             cti_queue.remove(cti)        
@@ -999,7 +1003,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
     # convertor is avaible only for predicates
 
     s = z3.Solver()
-    s.from_string(msat_to_smtlib2_ext(env, And(hat_init, Not(hat_prop), H_formula), 'UFLIA', True))
+    s.from_string(msat_to_smtlib2_ext(env, And(hat_init, Not(hat_prop), H_formula), 'ALL', True))
+
     if s.check() == z3.sat:
          print('unsafe! cex in the initial formula')
          return VerificationResult(UNSAFE, s.model())
@@ -1022,13 +1027,10 @@ def updria(opts, paramts : ParametricTransitionSystem):
         #pass it to z3
         s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'ALL', True))
         print('Checking intersection between last frame and property...')
-
         while s.check() == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
-
-            minimize_model(s, paramts.sorts)
-
+            #minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), model, paramts.sorts)
