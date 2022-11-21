@@ -735,6 +735,28 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
     return formula
 
 
+def get_size_constraint(sort, size):
+    vars = [Var('%s_%d' %(sort, i), mksort(sort)) for i in range(size)]
+    qvar = QVar('X', mksort(sort))
+    formula = Forall(qvar, Or(*[Eq(qvar, v) for v in vars]))
+    return formula
+
+
+def minimize_model(solver, sorts):
+    for s in sorts:
+        for size in itertools.count(1):
+            f = get_size_constraint(s, size)
+            solver.push()
+            solver.from_string(msat_to_smtlib2_ext(env, f, 'ALL', True))
+            res = solver.check()
+            if res == z3.sat:
+                print('minimal model of sizr %d' %size)
+                break
+            else:
+                solver.pop()
+
+
+
 def get_id(x):
     return Z3_get_ast_id(x.ctx_ref(), x.as_ast())
 
@@ -853,7 +875,6 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
 
 
 def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init) -> Bool :
-    
     if cti.frame_number == 0:
         for x in predicates_dict:
             print(x)
@@ -885,6 +906,8 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
             return True
 
         elif s.check() == z3.sat:
+
+            minimize_model(s, paramts.sorts)
             model = s.model()
             n_diagram, universe_dict = extract_diagram(predicates_dict.values(), model, paramts.sorts)
             s.reset()
@@ -981,7 +1004,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
          print('unsafe! cex in the initial formula')
          return VerificationResult(UNSAFE, s.model())
     else: 
-        print('no initial cex! Entering main loop \n') 
+        print('no initial cex! Entering main loop') 
     s.reset()
     # initialize frame sequence
     frame_counter = 1
@@ -997,12 +1020,15 @@ def updria(opts, paramts : ParametricTransitionSystem):
         last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
 
         #pass it to z3
-        s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True))
+        s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'ALL', True))
         print('Checking intersection between last frame and property...')
 
         while s.check() == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
+
+            minimize_model(s, paramts.sorts)
+
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), model, paramts.sorts)
@@ -1037,11 +1063,12 @@ def updria(opts, paramts : ParametricTransitionSystem):
 
                             # if set(new_preds_dict.values()) <= set(abstract_predicates_dict.values()):
                             #     print('no new predicates found!')
-                            #     # fail
+                            #     # failThe Edge 530 is quite possibly the best Garmin cycle computer ever produced. It might not have the touchscreen of the 830 or the smartphone stature of the 1030 but it does a devastating job of emulating and even equalling the performance and functionality of both of these computers, just for far less money.
                             #     return VerificationResult(UNKNOWN, cti_queue)
                             abstract_predicates_dict.update(new_preds_dict)
                             abs_vars += n_abs_vars
-                            break
+                            H_formula = get_h_formula(abstract_predicates_dict)
+                            cti_queue = []
                             # restart the loop with updated set of predicates               
 
             # blocked cex, recompute last formula to see wheter there are more models
