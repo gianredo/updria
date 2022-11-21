@@ -879,8 +879,6 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
 
 def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init) -> Bool :
     if cti.frame_number == 0:
-        for x in predicates_dict:
-            print(x)
         print('CEX! Violation of the initial formula')
         return False
    
@@ -894,7 +892,8 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
 
         s = Solver()     
         s.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
-
+        # for x in predicates_dict:
+        #     print(x)
         if s.check() == z3.unsat:      
             print('blocked')          
             cti_queue.remove(cti)        
@@ -1030,7 +1029,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
         while s.check() == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
-            #minimize_model(s, paramts.sorts)
+            minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), model, paramts.sorts)
