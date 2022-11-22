@@ -577,7 +577,6 @@ def extract_diagram(predicates, model, sort_names):
     for sort in sort_names:
         if model.get_universe(convert_type(env, mksort(sort))):
             universes[sort] = model.get_universe(convert_type(env, mksort(sort)))
-
     # create one msat variable for each element in universe
     # this will be existentially quantified in the diagrm
     ex_vars_dict = { s : [QVar(str(x), mksort(s)) \
@@ -992,10 +991,10 @@ def updria(opts, paramts : ParametricTransitionSystem):
     #compute abstraction of initial formula and property
     hat_init = substitute_index_predicates(paramts.init, abstract_predicates_dict, norm_dict)
     hat_prop = substitute_index_predicates(paramts.prop, abstract_predicates_dict, norm_dict)
-    #print(hat_init)
-    #print(hat_prop)
+    # print(hat_init)
+    # print(hat_prop)
     H_formula = get_h_formula(abstract_predicates_dict)
-    #print(H_formula)
+    # print(H_formula)
 
     # here we switch to z3. probabily using string is inefficent
     # we should use convertor (pystm?) from mathsat to z3
@@ -1029,11 +1028,10 @@ def updria(opts, paramts : ParametricTransitionSystem):
         while s.check() == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
-            minimize_model(s, paramts.sorts)
+            #minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), model, paramts.sorts)
-            #print(diagram)
             s.reset()
             # Aadd a cti in the cti_queue
             print('add cti')
