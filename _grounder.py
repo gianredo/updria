@@ -167,19 +167,7 @@ def get_concretization(opts, paramts, conc_size, lemmas):
 
     rule_var = Var("rule", INT)
     for i, rule in enumerate(paramts.trans_rules):
-
-        #this is true if existentials in transitions are assumed different
-        #which is true for mcmt, now broken
-        if False:
-            for (e_rule, is_degenerate) in instantiate_ex_vars(rule, varlist):
-                assert not is_degenerate
-                t_rule = expand_quantifiers(e_rule, varlist)
-                if opts.show_witness and opts.cex_track_rules:
-                    t_rule = And(t_rule, Eq(rule_var, Int(i)))    
-                trans = Or(trans, t_rule)
-        else:
-            t_rule = expand_quantifiers(rule, varlist)
-        
+        t_rule = expand_quantifiers(rule, varlist)
         # if opts.show_witness and opts.cex_track_rules:
         #     t_rule = And(t_rule, Eq(rule_var, Int(i)))    
         trans = Or(trans, t_rule)
@@ -196,41 +184,6 @@ def get_concretization(opts, paramts, conc_size, lemmas):
     for (c, n) in paramts.frozenvars:
         trans = And(trans, Eq(c, n))
    
-    is_forall = True
-    def visit(env, t, pre):
-        nonlocal is_forall
-        if pre and msat_term_is_exists(env, t):
-            is_forall = False
-            return MSAT_VISIT_ABORT
-        return MSAT_VISIT_PROCESS
-
-    msat_visit_term(env, paramts.prop, visit)
-
-    # if is_forall:
-    #     # sound for symmetries, crucial for good lemmas
-    #     def collect(e, tag, formula):
-    #         to_process = [formula]
-    #         seen = set()
-    #         while to_process:
-    #             cur = to_process[-1]
-    #             to_process.pop()
-    #             if cur in seen:
-    #                 continue
-    #             seen.add(cur)
-    #             if msat_decl_get_tag(e, msat_term_get_decl(cur)) == tag:
-    #                 n = msat_term_arity(cur)
-    #                 for i in range(n):
-    #                     to_process.append(msat_term_get_arg(cur, n-1-i))
-    #             else:
-    #                 yield cur    
-        
-    #     prop = TRUE()
-    #     for conj in collect(env, MSAT_TAG_AND, paramts.prop):
-    #         prop = And(prop, instantiate_u_vars(conj, varlist))
-
-    # if opts.input_language == 'mcmt':
-    #     prop = instantiate_u_vars(paramts.prop, varlist)
-
     prop = expand_quantifiers(paramts.prop, varlist)   
     
     for lemma in lemmas:
@@ -549,6 +502,7 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
         msat_set_itp_group(wenv, groups[idx])
         msat_assert_formula(wenv, f)
 
+    msat_last_error_message(wenv)
     res = msat_solve(wenv)
     if res == MSAT_SAT:
         print('true counterexample!')
@@ -567,10 +521,13 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
             itp = substitute(itp, vars_at_time[i-1], concrete_vars)
             from _updria import find_initial_predicates
             predicates = find_initial_predicates(paramts.sorts, itp, TRUE())
+            for x in predicates:
+                print(x)
+            # if all predicates are already discovered... restar with greater size
+
             all_preds += predicates
         
-        # for x in all_preds:
-        #     print(x)
+
 
         return True, None, all_preds, varlist
     

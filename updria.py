@@ -7,7 +7,7 @@ from _updria import *
 import sys
 
 
-def translate_int_index(opts, ts):
+def translate_int_index(opts, env, ts):
     '''
     function to translate ts from mcmt
     '''
@@ -51,8 +51,8 @@ def translate_int_index(opts, ts):
 
     new_prop = translate_indices(ts.prop)
 
-    x, y = Var('x', index_tp), Var('y', index_tp)
-    inj_axiom = Forall(x, Forall(y, Eq(Eq(x, y), Eq(toint(x), toint(y)))))
+    a, b = QVar('a', index_tp), QVar('b', index_tp)
+    inj_axiom = Forall(a, Forall(b, Iff(Eq(a, b), Eq(toint(a), toint(b)))))
     new_axioms.append(inj_axiom)
 
     return ParametricTransitionSystem([msat_type_repr(index_tp)], ts.statevars, new_axioms, new_init, new_rules, ts.frozenvars, new_prop)
@@ -75,7 +75,7 @@ def main():
     opts = getopts()
     ts = parse(opts)
     if opts.input_language == 'mcmt':
-        ts = translate_int_index(opts, ts)
+        ts = translate_int_index(opts, env, ts)
     # ts is a ParamTransitionSystem
     res = updria(opts, ts)
 
