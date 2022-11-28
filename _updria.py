@@ -1107,7 +1107,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
         while res == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
-            #minimize_model(s, paramts.sorts)
+            minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), \
