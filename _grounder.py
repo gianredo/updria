@@ -88,7 +88,7 @@ def instantiate_u_vars(formula, vardict):
 
 
 def cardinality_axioms(paramts, conc_size, only_cur=False):
-    from _updria import _param_map, _param_read_funs
+    from _updria import _param_map, _param_read_funs, _params
     
     all_formulae = [paramts.init, paramts.prop] + ([] if only_cur else paramts.trans_rules + paramts.axioms)
     all_constants = set()
@@ -151,6 +151,43 @@ def cardinality_axioms(paramts, conc_size, only_cur=False):
     return axioms
 
 
+#function for increasing cardinality
+def get_succ(l : list):
+    n = len(l)
+    for i in range(n):
+        b = l[:]
+        b[i] += 1
+        yield b
+
+
+def get_next(root : list):
+    global queue, visited
+
+    for i in get_succ(root):
+        if i not in queue:
+            queue.append(i)
+    if root not in visited:
+        yield root
+    #visit
+    else:
+        #min_l = lambda x : [i for i in x if sum(i) == sum(min(x))]
+        def find_min(l):
+            curr_min = -1
+            idx = -1
+            for i in l:
+                m = max(i)
+                if m < curr_min or curr_min == -1:
+                    curr_min = m
+                    idx = l.index(i)
+
+            return l[idx]        
+
+        queue.sort()
+        new = find_min(queue)
+        queue.remove(new)
+        yield from get_next(new)
+
+
 def get_concretization(opts, paramts, conc_size, lemmas):
 
     varlist = {s : [p_var(i, mksort(s)) for i in range(conc_size[s])]
@@ -201,244 +238,7 @@ def get_concretization(opts, paramts, conc_size, lemmas):
         init = And(init, d)
         #trans = And(trans, d)
 
-
-
     return TransitionSystem(statevars, init, trans, TRUE(), prop)
-
-
-def model_check(opts, ts, symset=None):
-    var2uf = {}
-    ufsubst = []
-    ufvalues = []
-    def remove_uf(ts):
-        uf2var = {}
-        curvars = set(p[0] for p in ts.statevars)
-        nextvars = { p[1] : p[0] for p in ts.statevars }
-        sv = {}
-        ok = True
-        
-        def visit(e, t, pre):
-            nonlocal ok
-            if not pre:
-                if t in uf2var:
-                    return MSAT_VISIT_SKIP
-                if is_param_val(t):
-                    c = Var("X{%d}" % id_(t), type_(t))
-                    var2uf[c] = t
-                    ufsubst.append(c)
-                    ufvalues.append(t)
-                    a = arg(t, 0)
-                    i = arg(t, 1)
-                    if a in curvars and i in curvars:
-                        sv.setdefault((a, i), [None, None])[0] = c
-                    elif a in nextvars and i in curvars:
-                        sv.setdefault((nextvars[a], i), [None, None])[1] = c
-                    uf2var[t] = c
-                elif msat_term_is_uf(e, t) and \
-                         any(is_param(c) for c in args(t)):
-                    ok = False
-                    return MSAT_VISIT_ABORT
-                else:
-                    targs = [uf2var[a] for a in args(t)]
-                    tt = term(t, targs)
-                    uf2var[t] = tt
-            return MSAT_VISIT_PROCESS
-
-        def get(t):
-            msat_visit_term(env, t, visit)
-            if ok:
-                return uf2var[t]
-            else:
-                return t
-
-        newinit = get(ts.init)
-        newtrans = get(ts.trans)
-        newprop = get(ts.prop)
-        newtransguard = get(ts.trans_guard)
-        
-        statevars = []
-        for (c, n) in ts.statevars:
-            if not is_param(c):
-                statevars.append((c, n))
-
-        for idx in sorted(sv, key=lambda t :
-                          (id_(t[0]), id_(t[1]))):
-            c, n = sv[idx]
-            if not (c and n):
-                ok = False
-                break
-            statevars.append((c, n))
-
-        if not ok:
-            var2uf.clear()
-            return ts
-        else:
-            ret = TransitionSystem(statevars, newinit, newtrans,
-                                   newtransguard, newprop)
-            return ret
-
-    if opts.remove_uf:
-        ts = remove_uf(ts)
-    
-    ic3 = msat_create_ic3(env)
-    if msat_ic3_setopt(ic3, "ic3core.reduce_inv", "true") != 0:
-        msat_ic3_setopt(ic3, "ic3core.reduce_inv", "2")
-    msat_ic3_setopt(ic3, "ic3ia.add_initial_reset", "true")
-    if opts.euf_low_priority:
-        msat_ic3_setopt(ic3, "mathsat-itp.theory.euf.low_priority", "true")
-    msat_ic3_set_verbosity(ic3, 1)
-
-    for (c, n) in ts.statevars:
-        err = msat_ic3_add_state_var(ic3, c, n)
-        assert not err, msat_ic3_last_error_message(ic3)
-
-    err = msat_ic3_set_init(ic3, ts.init)
-    assert not err, msat_ic3_last_error_message(ic3)
-
-    err = msat_ic3_set_trans(ic3, And(ts.trans, ts.trans_guard))
-    assert not err, msat_ic3_last_error_message(ic3)
-
-    prop_idx = msat_ic3_add_invar_property(ic3, ts.prop)
-    assert prop_idx == 0, msat_ic3_last_error_message(ic3)
-
-    use_ic3ia = _has_ic3ia and opts.ic3ia
-
-    vmt = msat_ic3_to_smtlib2(ic3)
-    # with open('/tmp/out.vmt', 'w') as out:
-    #     out.write(vmt)
-
-    if use_ic3ia:
-        ic3ia_opts = [
-            '-v', '1',
-            '-inv-reduce', '1'
-            '-inc-ref', '1',
-            '-lazy-init-preds', '1',
-            '-abs-bool-vars', '1',
-            ]
-        vmt = msat_ic3_to_smtlib2(ic3)
-        if opts.use_symmetries and symset:
-            terms, annots = msat_annotated_list_from_smtlib2(env, vmt)
-            for v in symset:
-                terms.append(v)
-                annots.append("symmetry-group")
-                annots.append("1")
-            vmt = msat_annotated_list_to_smtlib2(env, terms, annots)
-            ic3ia_opts += ['-use-symmetries', '1']
-        ## with open('/tmp/out.vmt', 'w') as out:
-        ##     out.write(vmt)
-            ##     exit(1)
-
-        prover = ic3ia.ic3ia_create(vmt,  ic3ia_opts)
-        safe = ic3ia.ic3ia_prove(prover)
-        wit = ic3ia.ic3ia_witness(prover)
-        ic3ia.ic3ia_destroy(prover)
-
-        res = msat_annotated_list_from_smtlib2(env, wit)
-        assert res, msat_last_error_message(env)
-        terms, annots = res
-        witness = []
-
-        err = MSAT_MAKE_ERROR_TERM()
-
-        if safe:
-            status = 0
-            clauses = []
-            for i, t in enumerate(terms):
-                k = annots[2*i]
-                v = annots[2*i+1]
-                if k == 'clause':
-                    j = int(v)
-                    while len(clauses) <= j:
-                        clauses.append([])
-                    clauses[j].append(t)
-            for cls in clauses:
-                witness += cls
-                witness.append(err)
-            witness.append(err)
-        else:
-            status = 1
-            steps = []
-            for i, t in enumerate(terms):
-                k = annots[2*i]
-                v = annots[2*i+1]
-                if k == 'step':
-                    j = int(v)
-                    while len(steps) <= j:
-                        steps.append([])
-                    steps[j].append(t)
-            for step in steps:
-                witness += step
-                witness.append(err)
-            witness.append(err)
-    
-
-
-    else:       
-        err = msat_ic3_init(ic3, MSAT_IC3_IA)
-        assert not err, msat_ic3_last_error_message(ic3)
-
-        status = msat_ic3_prove(ic3, prop_idx)
-        assert status in (0, 1), msat_ic3_last_error_message(ic3)
-
-        witness = msat_ic3_witness(ic3)
-        assert witness, msat_ic3_last_error_message(ic3)
-
-    if opts.remove_uf and var2uf:
-        for i, t in enumerate(witness):
-            if not MSAT_ERROR_TERM(t):
-                tt = var2uf.get(t)
-                if tt is None:
-                    tt = substitute(t, ufsubst, ufvalues)
-                    var2uf[t] = tt
-                witness[i] = tt
-
-    ret = VerificationResult(SAFE if status == 0 else UNSAFE, witness)    
-    msat_destroy_ic3(ic3)
-    
-    return ret
-
-
-def extract_lemmas(paramts, result, lemmas):
-    new_lemmas = []
-    seen_lemmas = set()
-    cls = FALSE()
-    num_qvars = {s : 0 for s in paramts.sorts}
-    for t in result.witness[:-1]:
-        if MSAT_ERROR_TERM(t):
-            l, n = lemma(cls, paramts.sorts)
-            if l not in seen_lemmas:
-                seen_lemmas.add(l)
-                new_lemmas.append(l)
-                num_qvars = {s : max(num_qvars[s], n[s]) for s in paramts.sorts}
-            cls = FALSE()
-        else:
-            cls = Or(cls, t)
-
-    return new_lemmas, num_qvars
-
-
-def extract_cex(witness, conc_size):
-    cex = []
-    step = []
-    tosubst = []
-    values = []
-    for i, t in enumerate(witness[:-1]):
-        if MSAT_ERROR_TERM(t):
-            cex.append([substitute(s, tosubst, values) for s in step])
-            step = []
-            tosubst = []
-            values = []
-        else:
-            if msat_term_is_equal(env, t):
-                v, n = arg(t, 0), arg(t, 1)
-                if not is_prophecy(v):
-                    v, n = n, v
-                if is_prophecy(v):
-                    tosubst.append(v)
-                    values.append(n)
-                    continue
-            step.append(t)
-    return cex
 
 
 def get_concrete_bmc_formula(opts, cti_queue, paramts, sizes): 
@@ -457,7 +257,9 @@ def get_concrete_bmc_formula(opts, cti_queue, paramts, sizes):
         if step == 0: 
             curr_vars = [Var(name(v) + ".step_%s" %step, type_(v)) for (v, _) in ts.statevars] 
             vars_at_time.append(curr_vars)
-            init_step = And(ts.init, expand_quantifiers(diagram, varlist))
+            init_step = ts.init
+            if opts.use_diagram_constraint:
+                init_step = And(init_step, expand_quantifiers(diagram, varlist))
             init_step = substitute(init_step, concrete_vars, curr_vars)
             unrolling = [init_step]
         else:
@@ -465,10 +267,14 @@ def get_concrete_bmc_formula(opts, cti_queue, paramts, sizes):
             next_vars = [Var(name(v) + ".step_%s" %step, type_(v)) for (v, _) in ts.statevars] 
             vars_at_time.append(next_vars)
             trans = substitute(trans, [a[1] for a in ts.statevars], next_vars)
-            diagram = expand_quantifiers(diagram, varlist)
-            diagram = substitute(diagram, concrete_vars, next_vars)
-            curr_vars = next_vars
-            unrolling.append(And(trans, diagram))
+            if opts.use_diagram_constraint:
+                diagram = expand_quantifiers(diagram, varlist)
+                diagram = substitute(diagram, concrete_vars, next_vars)
+                trans = And(trans, diagram)
+            elif len(unrolling) == len(cti_queue)-1:
+                trans = And(trans, Not(substitute(ts.prop, [a[0] for a in ts.statevars], next_vars)))   
+            curr_vars = next_vars  
+            unrolling.append(trans)
     
     assert len(unrolling) == len(cti_queue)
     return unrolling, vars_at_time, concrete_vars, varlist
@@ -489,47 +295,55 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
             n = len(c.universe_dict[s])
             if  n > sizes[s]:
                 sizes[s] = n 
+    queue = []
+    queue.append([sizes[s] for s in sizes])
+    #visited list of size already done
+    visited = []
 
     import _updria
     concrete_cti = [_updria.substitute_diagram(c.diagram, predicates_dict, abs_vars) for c in cti_queue]
     
-    bmc_list_formula, vars_at_time, concrete_vars, varlist = get_concrete_bmc_formula(opts, concrete_cti, paramts, sizes)    
-    groups = []
-    wenv = msat_create_shared_env({'interpolation' : 'true'}, env)
-    
-    for idx, f in enumerate(bmc_list_formula):
-        groups.append(msat_create_itp_group(wenv))
-        msat_set_itp_group(wenv, groups[idx])
-        msat_assert_formula(wenv, f)
+    while True:
 
-    msat_last_error_message(wenv)
-    res = msat_solve(wenv)
-    if res == MSAT_SAT:
-        print('true counterexample!')
-        ##actually concrete counterexamples
-        witness = []
-        ## compute witness
-        return False, witness, None, varlist
-    elif res == MSAT_UNSAT:
-        print('cex blocked in size %s' %str(sizes))
-        ## sprurious counterexample
-        ## compute interpolants
-        print('extracting interpolants...')
-        all_preds = []
-        for i in range(1, len(bmc_list_formula)):
-            itp = msat_get_interpolant(wenv, groups[:i])
-            itp = substitute(itp, vars_at_time[i-1], concrete_vars)
-            from _updria import find_initial_predicates
-            predicates = find_initial_predicates(paramts.sorts, itp, TRUE())
-            for x in predicates:
-                print(x)
-            # if all predicates are already discovered... restar with greater size
-
-            all_preds += predicates
+        bmc_list_formula, vars_at_time, concrete_vars, varlist = get_concrete_bmc_formula(opts, concrete_cti, paramts, sizes)    
+        groups = []
+        wenv = msat_create_shared_env({'interpolation' : 'true'}, env)
         
+        for idx, f in enumerate(bmc_list_formula):
+            groups.append(msat_create_itp_group(wenv))
+            msat_set_itp_group(wenv, groups[idx])
+            msat_assert_formula(wenv, f)
 
+        msat_last_error_message(wenv)
+        res = msat_solve(wenv)
+        if res == MSAT_SAT:
+            print('true counterexample!')
+            ##actually concrete counterexamples
+            witness = []
+            ## compute witness
+            return False, witness, None, varlist
+        elif res == MSAT_UNSAT:
+            print('cex blocked in size %s' %str(sizes))
+            visited.append([sizes[s] for s in sizes])
+            ## sprurious counterexample
+            ## compute interpolants
+            print('extracting interpolants...')
+            all_preds = []
+            for i in range(1, len(bmc_list_formula)):
+                itp = msat_get_interpolant(wenv, groups[:i])
+                itp = substitute(itp, vars_at_time[i-1], concrete_vars)
+                from _updria import find_initial_predicates
+                predicates = find_initial_predicates(paramts.sorts, itp, TRUE())
+                # for x in predicates:
+                #     print(x)
+                # normalize predicates
+                # if all predicates are already discovered... restar with greater size
+                
+                all_preds += predicates
+            if True:
+                return True, None, all_preds, varlist
+            else:
+                sizes = increase_size(sizes)
 
-        return True, None, all_preds, varlist
-    
-    else: 
-        raise AssertionError('Ground BMC are expected to be either sat or unsat')
+        else: 
+            raise AssertionError('Ground BMC are expected to be either sat or unsat')

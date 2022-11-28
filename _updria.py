@@ -57,19 +57,15 @@ def getopts():
 class Statistics:
     def __init__(self):
         self.verification_time = 0.0
-        self.block_time = 0.0
+        self.z3_time = 0.0
         self.generalization_time = 0.0
-        self.push_time = 0.0
         self.rec_block_time = 0.0
         self.propagate_time = 0.0
         self.refinement_time = 0.0
-        self.z3_check_time = 0.0
-        self.ground_check_time = 0.0
         self.minimizing_model_time = 0.0
         self.num_z3_calls = 0
-        self.added_cubes = 0
-        self.blocked_diagrams = 0
-        self.refinement_steps = 0
+        self.added_diagram = {0 : 1}
+        self.greatest_diagram_len = {0 : 0}
         self.num_initial_preds = 0
         self.num_final_preds = 0
         self.num_ref_iterations = 0
@@ -79,18 +75,16 @@ class Statistics:
     def __str__(self):
         out = [
          "verification time: %.3f" % self.verification_time,
+         "z3 check time: %.3f" % self.z3_time,
          "generalization time: %.3f" %self.generalization_time,
-         "push time: %.3f" % self.push_time,
          "recursive block time: %.3f" % self.rec_block_time,
          "propagation time: %.3f" % self.propagate_time,
          "refinement time: %.3f" % self.refinement_time,
-         "total z3 check time: %.3f" % self.z3_check_time,
-         "ground check time: %.3f" % self.ground_check_time,
          "minimization models time: %.3f" % self.minimizing_model_time,
          "num z3 calls: %d" % self.num_z3_calls,
-         "number of added cubes: %d" % self.added_cubes,
-         "number of blocked diagrams: %d" %self.blocked_diagrams,
-         "number of refinement steps: %d" % self.refinement_steps,
+         "number of added diagrams per frame: %s" % self.added_diagram,
+         "greatest number of literals in a diagram per frame: %s" %self.greatest_diagram_len,
+         "number of refinement steps: %d" % self.num_ref_iterations,
          "number of initial predicates: %d" % self.num_initial_preds,
          "number of final predicates: %d" % self.num_final_preds,
          "max concrete size: %d" % self.max_concrete_size
@@ -894,6 +888,13 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     alits = [Var("__c%s" % n, BOOL) for n,c in enumerate(fmlas)]
     z3_alits = [z3.Const("__c%s" % n, z3.BoolSort()) for n,c in enumerate(fmlas)]
     cc = [Or(Not(a),c) for a,c in zip(alits,fmlas)]
+    
+    idx = frame_sequence.index(frame)
+    try: 
+        _stats.greatest_diagram_len[idx] = max(_stats.greatest_diagram_len[idx], len(cc))
+    except KeyError as err:
+        _stats.greatest_diagram_len[idx] = len(cc)
+
     n_diagram = And(*cc)
     for v in qf: 
         n_diagram = Exists(v, n_diagram)
@@ -967,9 +968,12 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
         # for x in predicates_dict:
         #     print(x)
         _stats.num_z3_calls +=1
-        res = measure('z3_check_time', s.check)
+        res = measure('z3_time', s.check)
         if res == z3.unsat:      
-            _stats.blocked_diagrams +=1 
+            try:
+                _stats.added_diagram[frame_counter] += 1 
+            except KeyError as err:
+                _stats.added_diagram[frame_counter] = 1
             print('blocked')          
             cti_queue.remove(cti)        
             # generalize diagram with unsat cores
@@ -1080,7 +1084,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
     _stats.num_z3_calls += 1
     s = z3.Solver()
     s.from_string(msat_to_smtlib2_ext(env, And(hat_init, Not(hat_prop), H_formula), 'ALL', True))
-    res = measure("z3_check_time", s.check)
+    res = measure("z3_time", s.check)
     if res == z3.sat:
          print('unsafe! cex in the initial formula')
          return VerificationResult(UNSAFE, s.model())
@@ -1103,7 +1107,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
         _stats.num_z3_calls += 1
         s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'ALL', True))
         print('Checking intersection between last frame and property...')
-        res = measure('z3_check_time', s.check)
+        res = measure('z3_time', s.check)
         while res == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
@@ -1136,7 +1140,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                         s.reset()
                         
                         import _grounder
-                        spurious, cex, new_preds, concrete_varlist = measure('ground_check_time', \
+                        spurious, cex, new_preds, concrete_varlist = measure('refinement_time', \
                             _grounder.concretize_cti_queue ,opts, cti_queue, paramts, \
                                 abstract_predicates_dict, abs_vars)
                         if not spurious:
@@ -1145,7 +1149,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                         else: 
                             _stats.num_ref_iterations += 1
                             new_preds_dict, n_abs_vars, _ = \
-                                get_abstract_predicates(new_preds, concrete_varlist)
+                                    get_abstract_predicates(new_preds, concrete_varlist)
 
                             # if set(new_preds_dict.values()) <= set(abstract_predicates_dict.values()):
                             #     print('no new predicates found!')
@@ -1162,7 +1166,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
             s.reset()
             _stats.num_z3_calls += 1
             s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True)) 
-            res = measure('z3_check_time', s.check)       
+            res = measure('z3_time', s.check)       
     
         frame_counter += 1
         print('Add new counter %d' %frame_counter)
@@ -1181,7 +1185,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                         _stats.num_z3_calls += 1
                         s1 = Solver()
                         s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
-                        res = measure('z3_check_time', s1.check)
+                        res = measure('z3_time', s1.check)
                         if res == z3.unsat:
                             frame_sequence[i+1].append(d)
                         # else:
@@ -1192,6 +1196,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     print('Proved! Inductive invariant:')
                     for x in frame_sequence[i]:
                         print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
+                    _stats.num_final_preds = len(abstract_predicates_dict)
                     return VerificationResult(SAFE, frame_sequence[i])
             # f = Implies(And(*frame_sequence[i+1]), And(*frame_sequence[i]))
             # s3 = z3.Solver()
