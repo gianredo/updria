@@ -6,8 +6,10 @@ import itertools
 import random
 import sys
 from collections import namedtuple
+from contextlib import contextmanager
 from typing import Dict, List, NamedTuple
 from xml.dom import NotSupportedErr
+import time
 
 from mathsat import *
 from z3 import *
@@ -20,12 +22,14 @@ class Options:
     def __init__(self):
         self.vmt_property = 0      
         self.input_language = 'vmt'
+        self.use_diagram_constraint = True
         
 
     def __str__(self):
         return "\n".join(sorted([
             "vmt_property = %s" % self.vmt_property,
             "input_language = %s " % self.input_language,
+            "use_diagram_constraint = %s " %self.use_diagram_constraint,
             ]))
 # end of class Options
 
@@ -35,6 +39,7 @@ def getopts():
         dest = n.replace('-', '_')
         p.add_argument('--%s' % n, action='store_true', dest=dest)
         p.add_argument('--no-%s' % n, action='store_false', dest=dest)
+    add_flag('use-diagram-constraint')
     p.add_argument('--vmt-property', type=int, default=0)
     p.add_argument('infile', nargs='?')
     p.add_argument('-l', '--input-language',
@@ -42,6 +47,68 @@ def getopts():
     opts = Options()
     p.parse_args(namespace=opts)
     return opts
+
+
+#-----------------------------------------------------------------------------
+# Statistics
+#-----------------------------------------------------------------------------
+
+
+class Statistics:
+    def __init__(self):
+        self.verification_time = 0.0
+        self.block_time = 0.0
+        self.generalization_time = 0.0
+        self.push_time = 0.0
+        self.rec_block_time = 0.0
+        self.propagate_time = 0.0
+        self.refinement_time = 0.0
+        self.z3_check_time = 0.0
+        self.ground_check_time = 0.0
+        self.num_z3_calls = 0
+        self.added_cubes = 0
+        self.blocked_diagrams = 0
+        self.refinement_steps = 0
+        self.num_initial_preds = 0
+        self.num_final_preds = 0
+        self.num_ref_iterations = 0
+        self.max_concrete_size = 0
+        
+
+    def __str__(self):
+        out = [
+         "verification time: %.3f" % self.verification_time,
+         "generalization time: %.3f" %self.generalization_time,
+         "push time: %.3f" % self.push_time,
+         "recursive block time: %.3f" % self.rec_block_time,
+         "propagation time: %.3f" % self.propagate_time,
+         "refinement time: %.3f" % self.refinement_time,
+         "total z3 check time: %.3f" % self.z3_check_time,
+         "ground check time: %.3f" % self.ground_check_time,
+         "num z3 calls: %d" % self.num_z3_calls,
+         "number of added cubes: %d" % self.added_cubes,
+         "number of blocked diagrams: %d" %self.blocked_diagrams,
+         "number of refinement steps: %d" % self.refinement_steps,
+         "number of initial predicates: %d" % self.num_initial_preds,
+         "number of final predicates: %d" % self.num_final_preds,
+         "max concrete size: %d" % self.max_concrete_size
+            ]
+        return "\n".join(out)
+
+_stats = Statistics()
+
+@contextmanager
+def Timer(which):
+    start = time.time()
+    yield
+    end = time.time()
+    t = end - start
+    setattr(_stats, which, getattr(_stats, which) + t)
+
+def measure(which, func, *args, **kwds):
+    with Timer(which):
+        return func(*args, **kwds)
+
 
 #-----------------------------------------------------------------------------
 # convenience functions (PySMT style)
@@ -441,6 +508,7 @@ def get_abstract_predicates(predicates, varlist = None):
             f = msat_declare_function(env, 'x_%d' % (msat_term_id(p)), tp)
             abstract_vars.add(f)
             new_preds[p] = msat_make_uf(env, f, vars)
+            #print(msat_last_error_message(env))
         else:  
             f = Var('x_%s' % (msat_term_id(p)), BOOL)
             abstract_vars.add(msat_term_get_decl(f))
@@ -462,7 +530,6 @@ def substitute_index_predicates(formula, abstract_predicates_dict, norm_dict):
         idx_vars = get_free_vars(p)
         if not idx_vars:
             hat_formula = substitute(hat_formula, [p], [abstract_predicates_dict[p]])
-
     for old_p in norm_dict:
         for p in abstract_predicates_dict:
             if norm_dict[old_p] == p:
@@ -470,10 +537,12 @@ def substitute_index_predicates(formula, abstract_predicates_dict, norm_dict):
                 # p [sigma] = old_p
                 idx_vars = get_free_vars(p)
                 for subs in itertools.product(get_free_vars(old_p), repeat=len(idx_vars)):
-                    if substitute(p, idx_vars, subs) == old_p:
-                        hat_formula = substitute(hat_formula, [old_p], \
+                    if all([msat_type_equals(type_(x), type_(y)) for x, y in zip(idx_vars, subs)]):
+                        if substitute(p, idx_vars, subs) == old_p:
+                            hat_formula = substitute(hat_formula, [old_p], \
                             [substitute(abstract_predicates_dict[p], idx_vars, subs)])
-                        break 
+                            #print(msat_last_error_message(env))
+                            break 
 
     return hat_formula
 
@@ -740,7 +809,7 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
 
 def get_size_constraint(sort, size):
     vars = [Var('%s_%d' %(sort, i), mksort(sort)) for i in range(size)]
-    qvar = QVar('X', mksort(sort))
+    qvar = QVar('X%s' %sort, mksort(sort))
     formula = Forall(qvar, Or(*[Eq(qvar, v) for v in vars]))
     return formula
 
@@ -753,7 +822,7 @@ def minimize_model(solver, sorts):
             solver.from_string(msat_to_smtlib2_ext(env, f, 'ALL', True))
             res = solver.check()
             if res == z3.sat:
-                print('minimal model of sizr %d' %size)
+                print('minimal model of size %d for sort %s' %(size, s))
                 break
             else:
                 solver.pop()
@@ -801,7 +870,8 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     returns a set of literals with possibly existentially quantified variables    
     '''
     kind, qf, body = split_quantifier(diagram)
-    assert kind == EXISTS
+    if kind:
+        assert kind == EXISTS
     def collect(e, tag, formula):
         to_process = [formula]
         seen = set()
@@ -973,7 +1043,7 @@ def substitute_diagram(diagram, predicates_dict, abs_vars):
 def print_cex(cex):
     '''
     this function should print out the counterexample 
-    in a finite instance of the sorts
+    in a finite instance of the appropriate sorts
     
     '''
     pass
@@ -983,7 +1053,9 @@ def updria(opts, paramts : ParametricTransitionSystem):
     global frame_sequence, cti_queue, frame_counter 
     predicates = find_initial_predicates(paramts.sorts, paramts.init, paramts.prop) 
     abstract_predicates_dict, abs_vars, norm_dict  = get_abstract_predicates(predicates)
-    
+    _stats.num_initial_preds = len([x for x in abstract_predicates_dict])
+    print('There are %d initial predicates' %_stats.num_initial_preds)
+
     # for x in abstract_predicates_dict:
     #     print(x)
     #     print(abstract_predicates_dict[x])
@@ -999,11 +1071,11 @@ def updria(opts, paramts : ParametricTransitionSystem):
     # here we switch to z3. probabily using string is inefficent
     # we should use convertor (pystm?) from mathsat to z3
     # convertor is avaible only for predicates
-
+    _stats.num_z3_calls += 1
     s = z3.Solver()
     s.from_string(msat_to_smtlib2_ext(env, And(hat_init, Not(hat_prop), H_formula), 'ALL', True))
-
-    if s.check() == z3.sat:
+    res = measure("z3_check_time", s.check)
+    if res == z3.sat:
          print('unsafe! cex in the initial formula')
          return VerificationResult(UNSAFE, s.model())
     else: 
@@ -1021,11 +1093,12 @@ def updria(opts, paramts : ParametricTransitionSystem):
         assert not cti_queue
         #compute intersection between last frame and bad
         last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
-
         #pass it to z3
+        _stats.num_z3_calls += 1
         s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'ALL', True))
         print('Checking intersection between last frame and property...')
-        while s.check() == z3.sat:
+        res = measure('z3_check_time', s.check)
+        while res == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
             #minimize_model(s, paramts.sorts)
@@ -1041,7 +1114,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
             while cti_queue:
                 curr =  cti_queue[-1]
                 #recursevily block the cex
-                if not recblock(paramts, abstract_predicates_dict, abs_vars, curr, H_formula, hat_init):
+                recblockres = measure('rec_block_time', recblock, paramts, abstract_predicates_dict, abs_vars, curr, H_formula, hat_init)
+                if not recblockres:
                     # abstract coutnerexample
                         print('abstract cex')
                         cti_queue.reverse()
@@ -1052,7 +1126,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
                         s.reset()
                         
                         import _grounder
-                        spurious, cex, new_preds, concrete_varlist = _grounder.concretize_cti_queue(opts, cti_queue, paramts, abstract_predicates_dict, abs_vars)
+                        spurious, cex, new_preds, concrete_varlist = measure('ground_check_time', \
+                            _grounder.concretize_cti_queue ,opts, cti_queue, paramts, abstract_predicates_dict, abs_vars)
                         if not spurious:
                             print('Concrete conterexample is found!')                        
                             return VerificationResult(UNSAFE, cex)
@@ -1062,7 +1137,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
 
                             # if set(new_preds_dict.values()) <= set(abstract_predicates_dict.values()):
                             #     print('no new predicates found!')
-                            #     # failThe Edge 530 is quite possibly the best Garmin cycle computer ever produced. It might not have the touchscreen of the 830 or the smartphone stature of the 1030 but it does a devastating job of emulating and even equalling the performance and functionality of both of these computers, just for far less money.
+                            #     # fail
                             #     return VerificationResult(UNKNOWN, cti_queue)
                             abstract_predicates_dict.update(new_preds_dict)
                             abs_vars += n_abs_vars
@@ -1073,7 +1148,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
             # blocked cex, recompute last formula to see wheter there are more models
             last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
             s.reset()
-            s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True))        
+            s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True)) 
+            res = measure('z3_check_time', s.check)       
     
         frame_counter += 1
         print('Add new counter %d' %frame_counter)

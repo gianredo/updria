@@ -116,6 +116,7 @@ class MCMTParser(object):
             'nat' : INT,
             'int' : INT,
             'bool' : BOOL,
+            'real' : REAL
             }
 
         self.sig = []
