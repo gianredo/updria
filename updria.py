@@ -77,8 +77,11 @@ def main():
     if opts.input_language == 'mcmt':
         ts = translate_int_index(opts, env, ts)
     # ts is a ParamTransitionSystem
-    res = updria(opts, ts)
-
+    with Timer('verification_time'):
+        res = updria(opts, ts)
+    from _updria import _stats
+    print('Stats:')
+    print(str(_stats))
 
 if __name__ == '__main__':
     main()
