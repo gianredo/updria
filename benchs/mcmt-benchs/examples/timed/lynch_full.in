@@ -1,0 +1,360 @@
+
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+:comment Lynch-Shavit's mutual exclusion protocol
+:comment See Lynch,Shavit-"Timing-based mutual exclusion". In Proc. of IEEE
+:comment Real-Time Systems Symposium, pages 2-11, 1992.
+
+:comment This model is a more faithful version of the Lynch-Shavit's algorithm.
+:comment It contains minimum and maximum location time-bounds, and some lemmas
+:comment about mutual exclusion and deadlock-freedom (see Lynch paper for a thorough
+:comment description of the problem)
+
+:smt (define-type Location ( subrange 1 9))
+:comment 1 = minimum time in a non remainder location
+:comment E = maximum time in a non remainder non pause location
+:smt (define E::real)
+:comment F = minimum time in the pause location
+:smt (define F::real)
+
+
+:eevar c real
+
+:comment location
+:local a Location
+:comment clock
+:local X real
+:comment v contains the index of the process that wants to enter the critical section
+:global v int
+:comment w is a flag signaling that a process has written variable v
+:global w bool
+:comment  historical variable recording who put w=true (needed to state paper's property I3)
+:global h int
+
+:comment ----------------------axioms--------------------------
+:system_axiom
+:var x
+:cnj  (<=  1  E)
+
+:system_axiom
+:var x
+:cnj  (>= F  1 )
+
+:initial
+:var x
+:cnj (=  X[x]  0) (=  v[x]  -1) (=  w[x]  false) (= a[x] 1) (= h[x] -1)
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  a[z1]  7) (=  a[z2]  7)
+:u_cnj (> F E) (=  v[z1]  z1) (=  a[z1]  4) (= w[z1] true)  (= a[z2] 6)
+:u_cnj (>= a[z1] 7) (< a[z1] 9) (= w[z1] false)
+:u_cnj (> F E) (= w[z1] false)  (= a[z2] 6)
+:u_cnj (> F E) (= w[z1] true)  (= h[z1] z1) (< a[z1] 6)
+:u_cnj (> F E) (= w[z1] true)  (= h[z1] z1) (> a[z1] 8)
+
+:comment T1   A'-->B'
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= v[x] -1)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T2   B'-->C'
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (>= X[x] 1)
+:numcases 2
+:case (= x j)
+ :val 3
+ :val 0
+ :val x
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val x
+ :val w[j]
+ :val h[j]
+
+:comment T3  C'-->A'
+:transition
+:var x
+:var j
+:guard (= a[x] 3) (not (= v[x] x)) (>= X[x] F)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+
+
+:comment T4   C'-->A
+:transition
+:var x
+:var j
+:guard (= a[x] 3)  (>= X[x]  F) (= v[x] x)
+:numcases 2
+:case (= x j)
+ :val 4
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T5   A-->B
+:transition
+:var x
+:var j
+:guard (= a[x] 4) (= w[x] false) (>= X[x]  1)
+:numcases 2
+:case (= x j)
+ :val 5
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T6   A-->A'
+:transition
+:var x
+:var j
+:guard (= a[x] 4) (= w[x] true) (>= X[x]  1)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T7   B-->C
+:transition
+:var x
+:var j
+:guard (= a[x] 5) (>= X[x] 1)
+:numcases 2
+:case (= x j)
+ :val 6
+ :val 0
+ :val v[j]
+ :val true
+ :val x
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val true
+ :val x
+
+:comment T 8   C-->A'
+:transition
+:var x
+:var j
+:guard (= a[x] 6) (not (= v[x] x)) (>= X[x] 1)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T9   C-->CS
+:transition
+:var x
+:var j
+:guard (= a[x] 6) (= v[x] x) (>= X[x] 1)
+:numcases 2
+:case (= x j)
+ :val 7
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T10   CS-->W
+:transition
+:var x
+:var j
+:guard (= a[x] 7) (>= X[x] 1)
+:numcases 2
+:case (= x j)
+ :val 8
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T11   W-->X
+:transition
+:var x
+:var j
+:guard (= a[x] 8) (>= X[x] 1)
+:numcases 2
+:case (= x j)
+ :val 9
+ :val 0
+ :val v[j]
+ :val false
+ :val -1
+:case
+ :val a[j]
+ :val X[j]
+ :val v[j]
+ :val false
+ :val -1
+
+:comment T12   X-->A'
+:transition
+:var x
+:var j
+:guard (= a[x] 9) (>= X[x] 1)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val X[j]
+ :val -1
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val X[j]
+ :val -1
+ :val w[j]
+ :val h[j]
+
+:comment REMARK ABOUT DELAY TRANSITIONS
+:comment Delays transitions require an existential quantified time variable (see eevar declaration)
+:comment but no existentially quantified index variable. Since mcmt syntax requires instead
+:comment at least one existential quantified index variable, we must indicate it as x and
+:comment split consequently the delay transition into many cases according to the automaton's locations.
+
+:comment T13 time elapse
+:transition
+:var x
+:var j
+:guard (>  c  0) (not (= a[x] 1)) (not (= a[x] 3)) (<= (+ X[x] c) E)
+:uguard (not (= a[j] 1)) (not (= a[x] 3)) (<= (+ X[j] c) E)
+:uguard (= a[j] 1)
+:uguard (= a[j] 3)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T14 time elapse
+:transition
+:var x
+:var j
+:guard (>  c  0) (= a[x] 1)
+:uguard (not (= a[j] 1)) (not (= a[j] 3)) (<= (+ X[j] c) E)
+:uguard (= a[j] 1)
+:uguard (= a[j] 3)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T15 time elapse
+:transition
+:var x
+:var j
+:guard (>  c  0) (= a[x] 3)
+:uguard (not (= a[j] 1)) (not (= a[j] 3)) (<= (+ X[j] c) E)
+:uguard (= a[j] 1)
+:uguard (= a[j] 3)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+

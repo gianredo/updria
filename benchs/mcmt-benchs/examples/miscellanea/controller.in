@@ -1,0 +1,233 @@
+:comment   Controller 
+:comment   -----------
+:comment   
+:comment   Taken from Monika Maidl, "Using Model Checking for System
+:comment   Verification", 2000, PhD Thesis.
+:comment   
+:comment   A controller has two states: s1 and s2 (encoded as 1 and 2,
+:comment   respectively).  There is a variable l that stores some level and a
+:comment   variable l_old that stores the previous value of l.  The variable i is
+:comment   the sensor value of the level.  Whenever in control state s2, the new
+:comment   and the old value of the level differ by more than 80, alarm is
+:comment   issued.  The program is expected to satisfy the following property:  
+:comment   
+:comment    forall x. G (c=s2 /\ l=x ==> XX(c=s2 /\ l-x>100 ==> X(alarm=true)))
+:comment   
+:comment   This property is negated.  First, the universally quantified variable
+:comment   x becomes an existentially quantified variable that is replaced by a
+:comment   Skolem constant Val.  Then, it is transformed to the following
+:comment   automaton:
+:comment   
+:comment   States and labelling formulae
+:comment   ------------------------------
+:comment   1 : c=s2 /\ l=Val
+:comment   2 : true
+:comment   3 : c=s2 /\ l-x>100
+:comment   4 : alarm = false
+:comment   
+:comment   Transitions
+:comment   ------------
+:comment   1->2, 2->3, 3->4.
+:comment   
+:comment   We translate the transitions of the main program as usual and we
+:comment   translate the automaton as follows.  We introduce a variable for its
+:comment   location, transitions are translated straightforwardly, and finally we
+:comment   attach the label formula to each location by means of invariants.
+
+
+
+
+
+
+:smt (define-type locations ( subrange 1 2))
+:smt (define-type c_locations ( subrange 1 4))
+
+
+:comment Val
+:smt (define a::int)
+:comment c
+:global b locations
+:comment alarm
+:global c bool
+:comment l
+:global d int
+:comment l_old
+:global e int
+:comment i
+:global f int
+:comment pc
+:global g c_locations
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:system_axiom
+:var x
+:cnj (=>  (=  g[x]  1)  (and  (=  b[x]  2)   (=  d[x]  a) ))
+
+:system_axiom
+:var x
+:cnj (=>  (=  g[x]  2)   (= x x) )
+
+:system_axiom
+:var x
+:cnj (=>  (=  g[x]  3)  (and  (=  b[x]  2)   (> (+  d[x] (*  -1  a))  100) ))
+
+:system_axiom
+:var x
+:cnj (=>  (=  g[x]  4)   (=  c[x]  false) )
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:initial
+:var x
+:cnj (=  b[x]  1) (=  g[x]  1) 
+
+
+:unsafe
+:var z1
+:cnj (=  g[z1]  4) (=  c[z1]  false) 
+
+
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val  false
+ :val  f[x]
+ :val  d[x]
+ :val f[j]
+ :val g[j]
+:case 
+ :val  2
+ :val  false
+ :val  f[x]
+ :val  d[x]
+ :val f[j]
+ :val g[j]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (=  b[x]  2) (> (+  d[x] (*  -1  e[x]))  80) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val  true
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+:case 
+ :val  1
+ :val  true
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (=  b[x]  2) (<= (+  d[x] (*  -1  e[x]))  80) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+:case 
+ :val  1
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (=  g[x]  1) 
+:numcases 2
+:case (= x j)
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  2
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  2
+
+
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (=  g[x]  2) 
+:numcases 2
+:case (= x j)
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  3
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  3
+
+
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (=  g[x]  3) 
+:numcases 2
+:case (= x j)
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  4
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  4

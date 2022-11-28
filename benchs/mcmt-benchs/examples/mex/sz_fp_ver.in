@@ -1,0 +1,280 @@
+
+
+
+:comment       SOURCE:      Abdulla et al., FORTE 2009
+:comment       In the above paper, there is a version of the Szymanski algorithm where the stopping failure model 
+:comment       produces a spurious unsafety trace (see file sz.in)
+:comment       Loosely following the suggestions of the above paper, we produce a different formulation of the  
+:comment       algorithm whose associated stopping failure version can be proved to be safe  
+
+
+
+:smt (define-type locations (subrange 0 11))
+:local a locations
+:global n int
+:comment indicates whether there are or not processes in state 9 or 10; it can get values 0,1 (y/n) only
+
+
+:system_axiom 
+:var x
+:cnj (not (and (> a[x] 8)  (< a[x] 11) (>= n[x] 0))) 
+
+
+:initial 
+:var x
+:cnj (= a[x] 0) (= n[x] 0)
+ 
+:unsafe 
+:var x 
+:var y
+:cnj (= a[x] 10)  (= a[y] 10)
+
+
+
+:comment t1 r1
+:transition
+:var x
+:var j
+:guard (= a[x] 0)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j] 
+
+:comment t2 r2
+:transition
+:var x
+:var j
+:guard (= a[x] 1)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+:comment t3 r3
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (= n[x] 0)
+:uguard (< a[j] 4)
+:uguard (= a[j] 7)
+:uguard (= a[j] 8) 
+:numcases 2
+:case (= x j)
+ :val 3
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+:comment t4 r4
+:transition
+:var x
+:var j
+:guard (= a[x] 3)
+:numcases 2
+:case (= x j)
+ :val 4
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+:comment t5 r5
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 4) (= a[y] 2) 
+:numcases 2
+:case (= x j)
+ :val 6
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+:comment t6 r5
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 4) (= a[y] 3) 
+:numcases 2
+:case (= x j)
+ :val 6
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+
+
+:comment t7 r6
+:transition
+:var x
+:var j
+:guard (= a[x] 6)
+:numcases 2
+:case (= x j)
+ :val 7
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+:comment t8 r7
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 7) (= a[y] 9) 
+:numcases 2
+:case (= x j)
+ :val 8
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+:comment t9 r7
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 7) (= a[y] 10) 
+:numcases 2
+:case (= x j)
+ :val 8
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+
+:comment t10 r7
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 7) (= a[y] 11) 
+:numcases 2
+:case (= x j)
+ :val 8
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+:comment t11 r8
+:transition
+:var x
+:var j
+:guard (= a[x] 8)
+:numcases 2
+:case (= x j)
+ :val 9
+ :val 1
+:case  
+ :val a[j]
+ :val 1
+
+:comment t12 r9
+:transition
+:var x
+:var j
+:guard (= a[x] 5)
+:numcases 2
+:case (= x j)
+ :val 9
+ :val 1
+:case  
+ :val a[j]
+ :val 1
+
+:comment t13 r10
+:transition
+:var x
+:var j
+:guard (= a[x] 9)
+:uguard (< x j)
+:uguard (< a[j] 4) (> x j) 
+:numcases 2
+:case (= x j)
+ :val 10
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+
+
+:comment t14 r11
+:transition
+:var x
+:var j
+:guard (= a[x] 10)
+:uguard (< j x)
+:uguard (< a[j] 4) (> j x) 
+:uguard (> a[j] 8) (> j x) 
+:numcases 2
+:case (= x j)
+ :val 11
+ :val 1
+:case  
+ :val a[j]
+ :val 1
+
+
+:comment t15 r11bis
+:transition
+:var x
+:var j
+:guard (= a[x] 10)
+:uguard (< j x)
+:uguard (< a[j] 4) (> j x) 
+:uguard (> a[j] 8) (> j x) 
+:numcases 2
+:case (= x j)
+ :val 11
+ :val 0
+:case  
+ :val a[j]
+ :val 0
+
+:comment t16 r12
+:transition
+:var x
+:var j
+:guard (= a[x] 11)
+:numcases 2
+:case (= x j)
+ :val 0
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+:comment t17 r5bis
+:transition
+:var x
+:var j
+:guard (= a[x] 4)
+:uguard (< a[j] 2)  
+:uguard (> a[j] 3)  
+:numcases 2
+:case (= x j)
+ :val 5
+ :val n[j]
+:case  
+ :val a[j]
+ :val n[j]
+
+
+

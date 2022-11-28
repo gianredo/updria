@@ -1,0 +1,80 @@
+
+
+:comment      SOURCE: Pnueli et al., TACAS 2001
+
+
+:smt (define-type locations (subrange 1 4))
+
+:local a locations 
+:global f bool
+
+:initial 
+:var x
+:cnj (= a[x] 1)
+ 
+:unsafe 
+:var x 
+:var y
+:cnj (= a[x] 3)  (= a[y] 3)
+
+ 
+
+
+:comment t1
+:transition
+:var x
+:var j
+:guard (= a[x] 1)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val f[j]
+:case 
+ :val a[j]
+ :val f[j]
+
+
+
+:comment t2
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (= f[x] true)
+:numcases 2
+:case (= x j)
+ :val 3
+ :val false
+:case 
+ :val a[j]
+ :val false
+
+
+
+:comment t3
+:transition
+:var x
+:var j
+:guard (= a[x] 3)
+:numcases 2
+:case (= x j)
+ :val 4
+ :val f[j]
+:case   
+ :val a[j]
+ :val f[j]
+
+:comment t4
+:transition
+:var x
+:var j
+:guard (= a[x] 4)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val true
+:case   
+ :val a[j]
+ :val true
+
+
+

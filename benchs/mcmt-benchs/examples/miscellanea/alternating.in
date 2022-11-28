@@ -1,0 +1,574 @@
+
+:comment  SOURCE: murphi web page
+
+:comment pc1
+:global a int
+:comment flagm
+:global b bool
+:comment flagack
+:global c bool
+:comment pc2
+:global d int
+:comment b
+:global e bool
+:comment nb_mess
+:global f int
+:comment cm_mess
+:global g int
+:comment cm_bit
+:global h bool
+:comment sin_array
+:local i int
+:comment sin_len
+:global k int
+:comment pc3
+:global l int
+:comment c
+:global m bool
+:comment outr
+:global n int
+:comment cack
+:global o bool
+:comment rout_array
+:local p int
+:comment rout_len
+:global q int
+
+
+
+:initial
+:var x
+:cnj (=  a[x]  1) (=  d[x]  1) (=  l[x]  1) (=  b[x]  true) (=  c[x]  true) (=  e[x]  false) (=  m[x]  false) (=  n[x]  0) (=  f[x]  0) (=  g[x]  0) (=  h[x]  false) (=  o[x]  false) (=  k[x]  0) (=  q[x]  0) (=  p[x]  i[x]) (= (= x -1) (=  i[x]  0) ) 
+
+:system_axiom
+:var x
+:cnj (and (>= a[x] 0)  (>= d[x] 0)  (>= f[x] 0) (>= g[x] 0) (>= i[x] 0)  (>= k[x] 0) (>= l[x] 0)  (>= n[x] 0)  (>= p[x] 0) (>= q[x] 0))
+
+:unsafe
+:var z1
+:cnj (not (= i[z1]  p[z1]) ) (< z1  q[z1]) 
+:comment manually inserted further unsafety condition (the condition is 'accelerated' from formulae found by MCMT in backward search)
+:comment :u_cnj (< z1 q[z1]) (= a[z1] 3) (= d[z1] 1) (= e[z1] true) (= m[z1] false) (not (= m[z1] h[z1]))  (not (= (+ k[z1] p[z1]) (+ z1 f[z1] ))) 
+ 
+
+
+:variable_redundancy_test 
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) (= x  k[x]) (=  e[x]  true) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val  false
+ :val (+  f[x]  1)
+ :val g[j]
+ :val h[j]
+ :val  f[x]
+ :val (+  1  k[x])
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+:case 
+ :val  2
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val  false
+ :val (+  f[x]  1)
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val (+  1  k[x])
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) (= x  k[x]) (=  e[x]  false) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val  true
+ :val (+  f[x]  1)
+ :val g[j]
+ :val h[j]
+ :val  f[x]
+ :val (+  1  k[x])
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+:case 
+ :val  2
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val  true
+ :val (+  f[x]  1)
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val (+  1  k[x])
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (=  a[x]  2) (= x (+  k[x]  -1)) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val  true
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  i[x]
+ :val  e[x]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+:case 
+ :val  3
+ :val  true
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  i[x]
+ :val  e[x]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (=  a[x]  3) (=  c[x]  true) (=  o[x]  e[x]) (= x (+  k[x]  -1)) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val  true
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  i[x]
+ :val  e[x]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+:case 
+ :val  3
+ :val  true
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val  i[x]
+ :val  e[x]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (=  a[x]  3) (=  c[x]  true) (=  o[x]  e[x]) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+:case 
+ :val  1
+ :val b[j]
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (=  d[x]  3) (=  b[x]  false) 
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val  true
+ :val  1
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val  m[x]
+ :val p[j]
+ :val q[j]
+:case 
+ :val a[j]
+ :val b[j]
+ :val  true
+ :val  1
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val  m[x]
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 7
+:transition
+:var x
+:var j
+:guard (=  d[x]  3) (=  h[x]  m[x]) 
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val  true
+ :val  1
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val  m[x]
+ :val p[j]
+ :val q[j]
+:case 
+ :val a[j]
+ :val b[j]
+ :val  true
+ :val  1
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val n[j]
+ :val  m[x]
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 8
+:transition
+:var x
+:var j
+:guard (=  d[x]  1) (not (= h[x]  m[x]) ) (= x  q[x]) 
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val c[j]
+ :val  2
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val  g[x]
+ :val o[j]
+ :val  g[x]
+ :val (+  q[x]  1)
+:case 
+ :val a[j]
+ :val b[j]
+ :val c[j]
+ :val  2
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val m[j]
+ :val  g[x]
+ :val o[j]
+ :val p[j]
+ :val (+  q[x]  1)
+
+
+
+:comment T 9
+:transition
+:var x
+:var j
+:guard (=  d[x]  2) (=  m[x]  true) 
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val  true
+ :val  1
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val  false
+ :val n[j]
+ :val  false
+ :val p[j]
+ :val q[j]
+:case 
+ :val a[j]
+ :val b[j]
+ :val  true
+ :val  1
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val  false
+ :val n[j]
+ :val  false
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 10
+:transition
+:var x
+:var j
+:guard (=  d[x]  2) (=  m[x]  false) 
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val  true
+ :val  1
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val  true
+ :val n[j]
+ :val  true
+ :val p[j]
+ :val q[j]
+:case 
+ :val a[j]
+ :val b[j]
+ :val  true
+ :val  1
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val l[j]
+ :val  true
+ :val n[j]
+ :val  true
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 11
+:transition
+:var x
+:var j
+:guard (=  l[x]  1) 
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val  false
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val  1
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+:case 
+ :val a[j]
+ :val  false
+ :val c[j]
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val  1
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+
+
+
+:comment T 12
+:transition
+:var x
+:var j
+:guard (=  l[x]  1) 
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val  false
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val  1
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+:case 
+ :val a[j]
+ :val b[j]
+ :val  false
+ :val d[j]
+ :val e[j]
+ :val f[j]
+ :val g[j]
+ :val h[j]
+ :val i[j]
+ :val k[j]
+ :val  1
+ :val m[j]
+ :val n[j]
+ :val o[j]
+ :val p[j]
+ :val q[j]
+
+
+
+
+

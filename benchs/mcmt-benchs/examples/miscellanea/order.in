@@ -1,0 +1,148 @@
+:comment   Simple mutual exclusion protocol (parameterized)
+:comment   -------------------------------------------------
+:comment   
+:comment   Taken from Bjorner, Browne, Manna "Automatic Generation of Invariants
+:comment   and Intermediate Assertions" Theoretical Computer Science (TCS), 1996.  
+:comment   
+:comment   parameterized N : integer where N>1
+:comment           local j : array[1..N] of [1..n] where forall x.j[x] = 1
+:comment                 a : array[1..N] of boolean where forall x.a[x] = false
+:comment   
+:comment   P[1] || P[2] || ... || P[N]
+:comment   
+:comment   where
+:comment   
+:comment   P[i] := l1 : while (j[i] < i) do {
+:comment                 l2 : await a[j[i]]
+:comment                 l3 : j[i] := j[i] + 1
+:comment                }
+:comment           l4 : a[i] := true
+:comment           l5 :
+:comment   
+:comment   The program constructs are translated in the obvious way (see the book
+:comment   by Manna and Pnueli for more details).
+
+:smt (define-type locations ( subrange 1 5))
+
+
+
+:comment N
+:smt (define a::int)
+:comment l
+:local b locations
+:comment J
+:local c int
+:comment A
+:local d bool
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:system_axiom
+:var x
+:cnj  (>  a  0) 
+
+:system_axiom
+:var x
+:cnj (>= c[x] 0) 
+
+
+:comment ----------------------axioms--------------------------
+
+:initial
+:var x
+:cnj (=  b[x]  1) (=  c[x]  1) (=  d[x]  false) (>= x  1) (<= x  a) 
+
+
+:unsafe
+:var z1
+:var z2
+:cnj (< z1 z2) (=  b[z1]  3) (=  b[z2]  3) (>= z1  1) (<= z1  a) (>= z2  1) (<= z2  a) 
+
+
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) (<  c[x] x) (>= x  1) (<= x  a) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val c[j]
+ :val d[j]
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) (>=  c[x] x) (>= x  1) (<= x  a) 
+:numcases 2
+:case (= x j)
+ :val  4
+ :val c[j]
+ :val d[j]
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (=  b[x]  2) (= x  c[x]) (=  d[x]  true) (>= x  1) (<= x  a) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val c[j]
+ :val d[j]
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (=  b[x]  3) (>= x  1) (<= x  a) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val (+  c[x]  1)
+ :val d[j]
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]
+
+
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (=  b[x]  4) (>= x  1) (<= x  a) 
+:numcases 2
+:case (= x j)
+ :val  5
+ :val c[j]
+ :val  true
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]

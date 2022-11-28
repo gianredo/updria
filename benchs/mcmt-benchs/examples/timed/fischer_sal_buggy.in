@@ -1,0 +1,184 @@
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+
+:comment Fischer's mututal exclusion protocol (buggy version)
+:comment Taken from Dutertre,Sorea-"Timed Systems in SAL", SRI International,
+:comment SDL Technical Report SRI-SDL-04-03, October 21, 2004
+
+:comment The timed automaton has four locations: sleeping (1), waiting(2), trying(3)
+:comment and critical (4). The variable lock (l) holds the index of the process
+:comment which wants to enter the critical section. The key idea of the protocol
+:comment is to force a process in the waiting location (2) to write the lock
+:comment variable (l) whithin a time delta1 (A); whereas a process in the
+:comment trying location (3) is compelled to wait at least a time delta2 (B).
+:comment If delta1 (A) is smaller than delta2 (B), the mutual exclusion is
+:comment ensured.
+
+:comment In this version of the protocol, we constrain delta1 (A) to be greater than
+:comment delta2 (B). MCMT correctly informs us that the mutual exclusion property
+:comment is not fulfilled by the system.
+
+:comment A and B are the delays delta1 and delta2 respectively
+:smt (define A::real)
+:smt (define B::real)
+:smt (define-type Location (subrange 1 4))
+
+
+:comment current location of the automaton
+:local a Location
+:comment local clock measuring the elapsed time
+:local c real
+:comment shared variable lock
+:comment NB since the value 0 is a valid MCMT process index, the lock-free value -1
+:comment has been used instead
+:global l int
+
+
+:comment existential quantified variable modelling the elapsed time
+:eevar d real
+
+:initial
+:var x
+:cnj (>= A B) (= a[x] 1) (= c[x] 0) (= l[x] -1)
+
+:unsafe
+:var x
+:var y
+:cnj (= a[x] 4) (= a[y] 4)
+
+:comment t1
+:comment FROM sleeping(1)
+:comment TO waiting(2) INV c <= A
+:comment GUARD l == -1
+:comment UPDATES c = 0
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= l[x] -1)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val 0
+ :val l[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val l[j]
+
+:comment t2
+:comment FROM waiting(2) INV c <= A
+:comment TO trying(3)
+:comment GUARD c <= A
+:comment UPDATES l = x, c = 0
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (<= c[x] A)
+:numcases 2
+:case (= x j)
+ :val 3
+ :val 0
+ :val x
+:case
+ :val a[j]
+ :val c[j]
+ :val x
+
+:comment t3
+:comment FROM trying(3)
+:comment TO sleeping(1)
+:comment GUARD c >= B && l != x
+:transition
+:var x
+:var j
+:guard (= a[x] 3) (>= c[x] B) (not (= l[x] x))
+:numcases 2
+:case (= x j)
+ :val 1
+ :val c[j]
+ :val l[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val l[j]
+
+:comment t4
+:comment FROM trying(3)
+:comment TO critical(4)
+:comment GUARD c >= B && l == x
+:transition
+:var x
+:var j
+:guard (= a[x] 3) (>= c[x] B) (= l[x] x)
+:numcases 2
+:case (= x j)
+ :val 4
+ :val c[j]
+ :val l[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val l[j]
+
+:comment t5
+:comment FROM critical(4)
+:comment TO sleeping(1)
+:comment UPDATES l = 0
+:transition
+:var x
+:var j
+:guard (= a[x] 4)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val c[j]
+ :val -1
+:case
+ :val a[j]
+ :val c[j]
+ :val -1
+
+:comment REMARK ABOUT DELAY TRANSITIONS
+:comment Delays transitions require an existential quantified time variable (see eevar declaration)
+:comment but no existentially quantified index variable. Since mcmt syntax requires instead
+:comment at least one existential quantified index variable, we must indicate it as x and
+:comment split consequently the delay transition into many cases according to the automaton's locations.
+
+:comment t6
+:comment delay
+:transition
+:var x
+:var j
+:guard (> d 0) (not (= a[x] 2))
+:uguard (not (= a[j] 2))
+:uguard (= a[j] 2) (<= (+ c[j] d) A)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val l[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val l[j]
+
+:comment t7
+:comment delay
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 2) (<= (+ c[x] d) A)
+:uguard (not (= a[j] 2))
+:uguard (= a[j] 2) (<= (+ c[j] d) A)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val l[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val l[j]
+

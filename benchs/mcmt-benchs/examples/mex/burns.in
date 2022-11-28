@@ -1,0 +1,151 @@
+
+
+:comment SOURCE:      Abdulla et al., TACAS 2007
+
+:smt (define-type locations (subrange 1 7))
+:local a locations
+ 
+:local s bool
+
+:initial 
+:var x
+:cnj (= a[x] 1) (= s[x] false)
+ 
+:unsafe 
+:var x 
+:var y
+:cnj (= a[x] 6)  (= a[y] 6)
+
+ 
+
+
+:comment t1 
+:transition
+:var x
+:var j
+:guard (= a[x] 1)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val false
+:case   
+ :val a[j]
+ :val s[j]
+ 
+:comment t2
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 2) (< y x) (= s[y] false) 
+:numcases 2
+:case (= x j)
+ :val 1
+ :val s[j]
+:case       
+ :val a[j]
+ :val s[j]
+
+:comment t3
+:transition
+:var x
+:var j
+:guard (= a[x] 2)
+:uguard (< x j) 
+:uguard (< j x) (= s[j] false) 
+:numcases 2
+:case (= x j)
+ :val 3
+ :val s[j]
+:case  
+ :val a[j]
+ :val s[j]
+
+ 
+:comment t4
+:transition
+:var x
+:var j
+:guard (= a[x] 3)
+:numcases 2
+:case (= x j)
+ :val 4
+ :val true
+:case    
+ :val a[j]
+ :val s[j] 
+ 
+:comment t5
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 4) (= s[y] true) (< y x) 
+:numcases 2
+:case (= x j)
+ :val 1
+ :val s[j]
+:case    
+ :val a[j]
+ :val s[j]
+ 
+:comment t6
+:transition
+:var x
+:var j
+:guard (= a[x] 4)
+:uguard (= s[j] false) 
+:uguard (= s[j] true) (< x j) 
+:numcases 2
+:case (= x j)
+ :val 5 
+ :val s[j]
+:case 
+ :val a[j]
+ :val s[j]
+
+ 
+:comment t7
+:transition
+:var x
+:var j
+:guard (= a[x] 5)
+:uguard (< j x)
+:uguard (= s[j] false) (< x j)  
+:numcases 2
+:case (= x j)
+ :val 6
+ :val s[j]
+:case  
+ :val a[j]
+ :val s[j]
+
+ 
+:comment t8
+:transition
+:var x
+:var j
+:guard (= a[x] 6)
+:numcases 2
+:case (= x j)
+ :val 7
+ :val false
+:case   
+ :val a[j]
+ :val s[j]
+ 
+:comment t9
+:transition
+:var x
+:var j
+:guard (= a[x] 7)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val s[j]
+:case   
+ :val a[j]
+ :val s[j]
+ 
+
+

@@ -1,0 +1,177 @@
+
+
+:comment counting abstraction version (from a paper by Delzanno)
+
+
+:smt (define-type locations (subrange 1 6))
+
+:global a  locations
+
+:global e bool
+:global n int
+:global s int
+:global t int
+:global d int
+:global v int
+
+:initial
+:var x
+:cnj (= a 1) (= e false) (> n 0) (= d 0) (= v 0) (= t 0) (= s 0) 
+
+:unsafe
+:var x
+:cnj (= a 6) (> v 1)
+
+:system_axiom
+:var x
+:cnj (and (>= n 0) (>= s 0) (>= t 0) (>= d 0) (>= v 0))  
+
+:comment t1 
+:transition
+:var j 
+:guard (= a 1) (> n 0)
+:numcases 1
+:case 
+ :val 5
+ :val e
+ :val (+ n -1)
+ :val (+ s 1)
+ :val t
+ :val d
+ :val v
+
+
+:comment t2
+:transition
+:var j 
+:guard (= a 1) (> n 0)
+:numcases 1
+:case 
+ :val 2
+ :val e
+ :val (+ n -1)
+ :val s
+ :val (+ t 1)
+ :val d
+ :val v
+
+
+:comment t3
+:transition
+:var j 
+:guard (= a 1) (> d 0)
+:numcases 1
+:case 
+ :val 2
+ :val e
+ :val n
+ :val s
+ :val (+ t 1)
+ :val (+ d -1)
+ :val v
+
+
+:comment t4
+:transition
+:var j 
+:guard (= a 5) (= e true) (> v 0)
+:numcases 1
+:case 
+ :val 6
+ :val false
+ :val (+ n 1)
+ :val s
+ :val t
+ :val d
+ :val (+ v -1)
+
+
+:comment t5
+:transition
+:var j 
+:guard (= a 5) (= e false)
+:numcases 1
+:case 
+ :val 6
+ :val e
+ :val n
+ :val s
+ :val t
+ :val d
+ :val v
+
+
+:comment t6
+:transition
+:var j 
+:guard (= a 2)
+:numcases 1
+:case 
+ :val 3
+ :val e
+ :val (+ n d)
+ :val s
+ :val t
+ :val 0
+ :val v
+
+
+:comment t7
+:transition
+:var j 
+:guard (= a 3) (= e true) (> v 0)
+:numcases 1
+:case 
+ :val 4
+ :val false
+ :val (+ n 1)
+ :val s
+ :val t
+ :val d
+ :val (+ v -1)
+
+
+:comment t8
+:transition
+:var j 
+:guard (= a 3) (= e false)
+:numcases 1
+:case 
+ :val 4
+ :val e
+ :val n
+ :val s
+ :val t
+ :val d
+ :val v
+
+
+:comment t9
+:transition
+:var j 
+:guard (= a 6) (> s 0)
+:numcases 1
+:case 
+ :val 1
+ :val e
+ :val n
+ :val (+ s -1)
+ :val t
+ :val (+ d 1)
+ :val v
+
+
+:comment t10
+:transition
+:var j 
+:guard (= a 4) (> t 0)
+:numcases 1
+:case 
+ :val 1
+ :val true
+ :val n
+ :val s
+ :val (+ t -1)
+ :val d
+ :val (+ v 1)
+

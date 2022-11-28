@@ -1,0 +1,113 @@
+
+:comment   Taken from Pnueli lecture notes "Analysis of Reactive Systems" 2002.  
+:comment   Available on the web at 
+:comment      http://cs.nyu.edu/courses/fall02/G22.3033-004/index.htm
+:comment
+:comment   Simple mutual exclusion protocol (parametrized)
+:comment   ------------------------------------------------
+:comment   
+:comment   local y : natural where y = 1
+:comment   
+:comment   P[1] || P[2] || ... || P[N]
+:comment   
+:comment   where
+:comment   
+:comment   P1[i] :: loop forever do {
+:comment          l1 : Non-critical
+:comment          l2 : request y
+:comment          l3 : CRITICAL
+:comment          l4 : release y }
+:comment
+:comment   Below, y is translated as a "global" array variable of type natural.
+:comment   One more local array variable l is introduced to store the values of
+:comment   the program counter of each process.  The program constructs are
+:comment   translated in the obvious way (see the book by Manna and Pnueli for
+:comment   more details).  In particular, the semaphore instructions "request y" and "release y" stand for
+:comment
+:comment   ATOMIC { away y > 0; y:= y -1;}  and y:= y+1, respectively .
+
+:smt (define-type locations ( subrange 1 4))
+
+:comment l
+:local a locations
+:comment Y
+:global b int
+
+
+
+:initial
+:var x
+:cnj (=  a[x]  1) (=  b[x]  1) 
+
+
+:unsafe
+:var z1
+:var z2
+:comment :cnj (<  b[z1]  0) 
+
+:cnj (=  a[z1]  3) (=  a[z2]  3) 
+
+:comment :u_cnj (=  a[z1]  3) (not (= b[z1]  0) ) 
+
+:system_axiom
+:var x
+:cnj (>= b[x] 0) 
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (=  a[x]  2) (>  b[x]  0) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val (+  b[x]  -1)
+:case 
+ :val a[j]
+ :val (+  b[x]  -1)
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (=  a[x]  3) 
+:numcases 2
+:case (= x j)
+ :val  4
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (=  a[x]  4) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]

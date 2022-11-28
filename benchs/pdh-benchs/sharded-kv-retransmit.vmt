@@ -1,0 +1,102 @@
+; VMT translation of sharded-kv-retransmit.pyv (IC3PO flavored)
+(declare-sort key 0)
+(declare-sort value 0)
+(declare-sort node 0)
+(declare-sort seqnum 0)
+
+(define-fun .key ((S key)) key (! S :sort 1))
+(define-fun .value ((S value)) value (! S :sort 1))
+(define-fun .node ((S node)) node (! S :sort 1))
+(define-fun .seqnum ((S seqnum)) seqnum (! S :sort 1))
+
+(declare-fun __table (node key value) Bool)
+(declare-fun __unacked (node node key value seqnum) Bool)
+(declare-fun __owner (node key) Bool)
+(declare-fun __transfer_msg (node node key value seqnum) Bool)
+(declare-fun __ack_msg (node node seqnum) Bool)
+(declare-fun __seqnum_sent (node seqnum) Bool)
+(declare-fun __seqnum_recvd (node node seqnum) Bool)
+
+(declare-fun table (node key value) Bool)
+(declare-fun unacked (node node key value seqnum) Bool)
+(declare-fun owner (node key) Bool)
+(declare-fun transfer_msg (node node key value seqnum) Bool)
+(declare-fun ack_msg (node node seqnum) Bool)
+(declare-fun seqnum_sent (node seqnum) Bool)
+(declare-fun seqnum_recvd (node node seqnum) Bool)
+
+(define-fun .table ((V0 node) (V1 key) (V2 value)) Bool (! (__table V0 V1 V2) :next table))
+(define-fun .unacked ((V0 node) (V1 node) (V2 key) (V3 value) (V4 seqnum)) Bool (! (__unacked V0 V1 V2 V3 V4) :next unacked))
+(define-fun .owner ((V0 node) (V1 key)) Bool (! (__owner V0 V1) :next owner))
+(define-fun .transfer_msg ((V0 node) (V1 node) (V2 key) (V3 value) (V4 seqnum)) Bool (! (__transfer_msg V0 V1 V2 V3 V4) :next transfer_msg))
+(define-fun .ack_msg ((V0 node) (V1 node) (V2 seqnum)) Bool (! (__ack_msg V0 V1 V2) :next ack_msg))
+(define-fun .seqnum_sent ((V0 node) (V1 seqnum)) Bool (! (__seqnum_sent V0 V1) :next seqnum_sent))
+(define-fun .seqnum_recvd ((V0 node) (V1 node) (V2 seqnum)) Bool (! (__seqnum_recvd V0 V1 V2) :next seqnum_recvd))
+
+
+
+(define-fun .prop () Bool (!
+ (let (($v (forall ((N1 node) (K key) (V1 value) (N2 node) (V2 value)) (=> (and (__table N1 K V1) (__table N2 K V2)) (and (= N1 N2) (= V1 V2))))
+ ))
+ (and $v))
+ :invar-property 0))
+
+(define-fun .init () Bool (!
+ (let (($v (and (forall ((N node) (K key) (V value)) (not (__table N K V))) (forall ((SRC node) (DST node) (K key) (V value) (S seqnum)) (not (__transfer_msg SRC DST K V S))) (forall ((N1 node) (K key) (N2 node)) (=> (and (__owner N1 K) (__owner N2 K)) (= N1 N2))) (forall ((SRC node) (DST node) (K key) (V value) (S seqnum)) (not (__unacked SRC DST K V S))) (forall ((SRC node) (DST node) (S seqnum)) (not (__ack_msg SRC DST S))) (forall ((N node) (S seqnum)) (not (__seqnum_sent N S))) (forall ((N node) (SENDER node) (S seqnum)) (not (__seqnum_recvd N SENDER S))))
+ ))
+ (and $v))
+ :init true))
+
+(define-fun .axiom () Bool (!
+ (let (($v true
+ ))
+ (and $v))
+ :axiom true))
+
+(define-fun .action_reshard () Bool (!
+    (let (($v (exists ((n_old node) (n_new node) (k key) (v value) (s seqnum)) (and (forall ((N node) (S seqnum) (K key) (V value) (N1 node) (N2 node)) (and (__table n_old k v) (not (__seqnum_sent n_old s)) (= (seqnum_sent N S) (or (__seqnum_sent N S) (and (= N n_old) (= S s)))) (= (table N K V) (and (__table N K V) (not (and (= N n_old) (= K k) (= V v))))) (= (owner N K) (and (__owner N K) (not (and (= N n_old) (= K k))))) (= (transfer_msg N1 N2 K V S) (or (__transfer_msg N1 N2 K V S) (and (= N1 n_old) (= N2 n_new) (= K k) (= V v) (= S s)))) (= (unacked N1 N2 K V S) (or (__unacked N1 N2 K V S) (and (= N1 n_old) (= N2 n_new) (= K k) (= V v) (= S s)))))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (ack_msg x0 x1 x2) (__ack_msg x0 x1 x2))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (seqnum_recvd x0 x1 x2) (__seqnum_recvd x0 x1 x2)))))
+    ))
+    (and $v))
+    :action reshard))
+
+(define-fun .action_drop_transfer_msg () Bool (!
+    (let (($v (exists ((src node) (dst node) (k key) (v value) (s seqnum)) (and (forall ((N1 node) (N2 node) (K key) (V value) (S seqnum)) (and (__transfer_msg src dst k v s) (= (transfer_msg N1 N2 K V S) (and (__transfer_msg N1 N2 K V S) (not (and (= N1 src) (= N2 dst) (= K k) (= V v) (= S s))))))) (forall ((x0 node) (x1 key) (x2 value)) (= (table x0 x1 x2) (__table x0 x1 x2))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (unacked x0 x1 x2 x3 x4) (__unacked x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 key)) (= (owner x0 x1) (__owner x0 x1))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (ack_msg x0 x1 x2) (__ack_msg x0 x1 x2))) (forall ((x0 node) (x1 seqnum)) (= (seqnum_sent x0 x1) (__seqnum_sent x0 x1))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (seqnum_recvd x0 x1 x2) (__seqnum_recvd x0 x1 x2)))))
+    ))
+    (and $v))
+    :action drop_transfer_msg))
+
+(define-fun .action_retransmit () Bool (!
+    (let (($v (exists ((src node) (dst node) (k key) (v value) (s seqnum)) (and (forall ((N1 node) (N2 node) (K key) (V value) (S seqnum)) (and (__unacked src dst k v s) (= (transfer_msg N1 N2 K V S) (or (__transfer_msg N1 N2 K V S) (and (= N1 src) (= N2 dst) (= K k) (= V v) (= S s)))))) (forall ((x0 node) (x1 key) (x2 value)) (= (table x0 x1 x2) (__table x0 x1 x2))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (unacked x0 x1 x2 x3 x4) (__unacked x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 key)) (= (owner x0 x1) (__owner x0 x1))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (ack_msg x0 x1 x2) (__ack_msg x0 x1 x2))) (forall ((x0 node) (x1 seqnum)) (= (seqnum_sent x0 x1) (__seqnum_sent x0 x1))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (seqnum_recvd x0 x1 x2) (__seqnum_recvd x0 x1 x2)))))
+    ))
+    (and $v))
+    :action retransmit))
+
+(define-fun .action_recv_transfer_msg () Bool (!
+    (let (($v (exists ((src node) (n node) (k key) (v value) (s seqnum)) (and (forall ((N1 node) (N2 node) (S seqnum) (N node) (K key) (V value)) (and (__transfer_msg src n k v s) (not (__seqnum_recvd n src s)) (= (seqnum_recvd N1 N2 S) (or (__seqnum_recvd N1 N2 S) (and (= N1 n) (= N2 src) (= S s)))) (= (table N K V) (or (__table N K V) (and (= N n) (= K k) (= V v)))) (= (owner N K) (or (__owner N K) (and (= N n) (= K k)))))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (unacked x0 x1 x2 x3 x4) (__unacked x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (transfer_msg x0 x1 x2 x3 x4) (__transfer_msg x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (ack_msg x0 x1 x2) (__ack_msg x0 x1 x2))) (forall ((x0 node) (x1 seqnum)) (= (seqnum_sent x0 x1) (__seqnum_sent x0 x1)))))
+    ))
+    (and $v))
+    :action recv_transfer_msg))
+
+(define-fun .action_send_ack () Bool (!
+    (let (($v (exists ((src node) (n node) (k key) (v value) (s seqnum)) (and (forall ((N1 node) (N2 node) (S seqnum)) (and (__transfer_msg src n k v s) (__seqnum_recvd n src s) (= (ack_msg N1 N2 S) (or (__ack_msg N1 N2 S) (and (= N1 src) (= N2 n) (= S s)))))) (forall ((x0 node) (x1 key) (x2 value)) (= (table x0 x1 x2) (__table x0 x1 x2))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (unacked x0 x1 x2 x3 x4) (__unacked x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 key)) (= (owner x0 x1) (__owner x0 x1))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (transfer_msg x0 x1 x2 x3 x4) (__transfer_msg x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 seqnum)) (= (seqnum_sent x0 x1) (__seqnum_sent x0 x1))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (seqnum_recvd x0 x1 x2) (__seqnum_recvd x0 x1 x2)))))
+    ))
+    (and $v))
+    :action send_ack))
+
+(define-fun .action_drop_ack_msg () Bool (!
+    (let (($v (exists ((src node) (dst node) (s seqnum)) (and (forall ((N1 node) (N2 node) (S seqnum)) (and (__ack_msg src dst s) (= (ack_msg N1 N2 S) (and (__ack_msg N1 N2 S) (not (and (= N1 src) (= N2 dst) (= S s))))))) (forall ((x0 node) (x1 key) (x2 value)) (= (table x0 x1 x2) (__table x0 x1 x2))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (unacked x0 x1 x2 x3 x4) (__unacked x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 key)) (= (owner x0 x1) (__owner x0 x1))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (transfer_msg x0 x1 x2 x3 x4) (__transfer_msg x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 seqnum)) (= (seqnum_sent x0 x1) (__seqnum_sent x0 x1))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (seqnum_recvd x0 x1 x2) (__seqnum_recvd x0 x1 x2)))))
+    ))
+    (and $v))
+    :action drop_ack_msg))
+
+(define-fun .action_recv_ack_msg () Bool (!
+    (let (($v (exists ((src node) (dst node) (s seqnum)) (and (forall ((N1 node) (N2 node) (S seqnum) (K key) (V value)) (and (__ack_msg src dst s) (=> (not (and (= N1 src) (= N2 dst) (= S s))) (= (unacked N1 N2 K V S) (__unacked N1 N2 K V S))) (not (unacked src dst K V s)))) (forall ((x0 node) (x1 key) (x2 value)) (= (table x0 x1 x2) (__table x0 x1 x2))) (forall ((x0 node) (x1 key)) (= (owner x0 x1) (__owner x0 x1))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (transfer_msg x0 x1 x2 x3 x4) (__transfer_msg x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (ack_msg x0 x1 x2) (__ack_msg x0 x1 x2))) (forall ((x0 node) (x1 seqnum)) (= (seqnum_sent x0 x1) (__seqnum_sent x0 x1))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (seqnum_recvd x0 x1 x2) (__seqnum_recvd x0 x1 x2)))))
+    ))
+    (and $v))
+    :action recv_ack_msg))
+
+(define-fun .action_put () Bool (!
+    (let (($v (exists ((n node) (k key) (v value)) (and (forall ((N node) (K key) (V value)) (and (__owner n k) (=> (not (and (= N n) (= K k))) (= (table N K V) (__table N K V))) (= (table n k V) (= V v)))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (unacked x0 x1 x2 x3 x4) (__unacked x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 key)) (= (owner x0 x1) (__owner x0 x1))) (forall ((x0 node) (x1 node) (x2 key) (x3 value) (x4 seqnum)) (= (transfer_msg x0 x1 x2 x3 x4) (__transfer_msg x0 x1 x2 x3 x4))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (ack_msg x0 x1 x2) (__ack_msg x0 x1 x2))) (forall ((x0 node) (x1 seqnum)) (= (seqnum_sent x0 x1) (__seqnum_sent x0 x1))) (forall ((x0 node) (x1 node) (x2 seqnum)) (= (seqnum_recvd x0 x1 x2) (__seqnum_recvd x0 x1 x2)))))
+    ))
+    (and $v))
+    :action put))

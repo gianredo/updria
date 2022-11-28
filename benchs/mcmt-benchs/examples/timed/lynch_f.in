@@ -1,0 +1,400 @@
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+
+
+:comment  RUN WITH OPTION -a !!!  
+
+
+
+:smt (define-type locations ( subrange 1 9))
+
+
+
+:comment 1= minimum time  in a non remainder location
+
+:comment E= maximum time  in a non remainder non pause location 
+:smt (define E::real)
+:comment F= minimum time  in the pause location
+:smt (define F::real)
+
+:comment dt
+:eevar c real
+
+
+
+:comment location
+:local a locations
+:comment clock
+:local X real
+:comment v1
+:global v int
+:comment v2
+:global w bool
+:comment  historical variable recording who put w=true (needed to state paper's property I3) 
+:global h int
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:system_axiom
+:var x
+:cnj  (<=  1  E) 
+
+
+
+
+
+
+:system_axiom
+:var x
+:cnj  (>= F  1 ) 
+
+
+:initial
+:var x
+:cnj (=  X[x]  0) (=  v[x]  -1) (=  w[x]  false) (= a[x] 1) (= h[x] -1)
+
+
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  a[z1]  7) (=  a[z2]  7)
+
+:comment u_cnj (>= a[z1] 7) (< a[z1] 9) (= w[z1] false)
+
+:comment u_cnj (= a[z1] 8)  (= w[z1] false)
+
+:comment u_cnj (> F E) (=  v[z1]  z1) (=  a[z1]  4) (= w[z1] true)  (= a[z2] 6)
+
+
+
+:comment u_cnj (> F E) (= w[z1] false)  (= a[z2] 6)
+
+:comment u_cnj (> F E) (= w[z1] true)  (= h[z1] z1) (< a[z1] 6)
+
+:comment u_cnj (> F E) (= w[z1] true)  (= h[z1] z1) (> a[z1] 8)
+ 
+:comment dynamic_predicate_abstraction
+
+:abstract_signature
+:subsignature 0
+:subsignature 1
+:subsignature 0
+:subsignature 0
+:subsignature 1
+:end_of_abstract_signature
+
+
+
+:inv_search_max_index_var 6
+
+:comment inv_search_max_num_nodes 1000
+
+:comment T 1   A'-->B'
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= v[x] -1)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T 2   B'-->C'
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (>= X[x] 1) 
+:numcases 2
+:case (= x j)
+ :val 3
+ :val 0
+ :val x
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val x
+ :val w[j]
+ :val h[j]
+
+:comment T 3  C'-->A'
+:transition
+:var x
+:var j
+:guard (= a[x] 3) (not (= v[x] x)) (>= X[x] F) 
+:numcases 2
+:case (= x j)
+ :val 1
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+
+
+:comment T 4   C'-->A            '
+:transition
+:var x
+:var j
+:guard (= a[x] 3)  (>= X[x]  F) (= v[x] x)
+:numcases 2
+:case (= x j)
+ :val 4
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+
+
+:comment T 5   A-->B
+:transition
+:var x
+:var j
+:guard (= a[x] 4) (= w[x] false) (>= X[x]  1)
+:numcases 2
+:case (= x j)
+ :val 5
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val w[j]
+ :val h[j] 
+
+:comment T 6   A-->A'          '
+:transition
+:var x
+:var j
+:guard (= a[x] 4) (= w[x] true) (>= X[x]  1)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T 7   B-->C
+:transition
+:var x
+:var j
+:guard (= a[x] 5) (>= X[x] 1) 
+:numcases 2
+:case (= x j)
+ :val 6
+ :val 0
+ :val v[j]
+ :val true
+ :val x
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val true
+ :val x
+
+
+:comment T 8   C-->A'   '
+:transition
+:var x
+:var j
+:guard (= a[x] 6) (not (= v[x] x)) (>= X[x] 1) 
+:numcases 2
+:case (= x j)
+ :val 1
+ :val X[j]
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T 9   C-->CS
+:transition
+:var x
+:var j
+:guard (= a[x] 6) (= v[x] x) (>= X[x] 1) 
+:numcases 2
+:case (= x j)
+ :val 7
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T 10   CS-->W
+:transition
+:var x
+:var j
+:guard (= a[x] 7) (>= X[x] 1)  
+:numcases 2
+:case (= x j)
+ :val 8
+ :val 0
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val w[j]
+ :val h[j] 
+
+:comment T 11   W-->X
+:transition
+:var x
+:var j
+:guard (= a[x] 8) (>= X[x] 1) 
+:numcases 2
+:case (= x j)
+ :val 9
+ :val 0
+ :val v[j]
+ :val false
+ :val -1
+:case 
+ :val a[j]
+ :val X[j] 
+ :val v[j]
+ :val false
+ :val -1 
+
+:comment T 12   X-->A'    '
+:transition
+:var x
+:var j
+:guard (= a[x] 9) (>= X[x] 1) 
+:numcases 2
+:case (= x j)
+ :val 1
+ :val X[j]
+ :val -1
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val X[j] 
+ :val -1
+ :val w[j]
+ :val h[j] 
+
+
+:comment T 13 time elapse
+:transition
+:var x
+:var j
+:guard (>  c  0) (not (= a[x] 1)) (not (= a[x] 3)) (<= (+ X[x] c) E)
+:uguard (not (= a[j] 1)) (not (= a[j] 3)) (<= (+ X[j] c) E)
+:uguard (= a[j] 1) 
+:uguard (= a[j] 3)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+
+
+:comment T 14 time elapse
+:transition
+:var x
+:var j
+:guard (>  c  0) (= a[x] 1) 
+:uguard (not (= a[j] 1)) (not (= a[j] 3)) (<= (+ X[j] c) E)
+:uguard (= a[j] 1) 
+:uguard (= a[j] 3)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+:comment T 15 time elapse
+:transition
+:var x
+:var j
+:guard (>  c  0) (= a[x] 3) 
+:uguard (not (= a[j] 1)) (not (= a[j] 3)) (<= (+ X[j] c) E)
+:uguard (= a[j] 1) 
+:uguard (= a[j] 3)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+:case 
+ :val a[j]
+ :val (+  X[j]  c)
+ :val v[j]
+ :val w[j]
+ :val h[j]
+
+

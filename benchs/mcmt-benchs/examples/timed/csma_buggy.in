@@ -1,0 +1,566 @@
+
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+:comment CSMA/CD collision resolution protocol (buggy version)
+:comment see Yovine-"Kronos: A Verification Tool for Real-Time System",
+:comment Springer Int. Journal of Software Tools for Technology Transfer, 1997
+
+:comment In the cited paper, the client's diagram shows that the guard's upper bound of the
+:comment transition from location transm (1) to location retry (2) (when a collision
+:comment occurs) is sigma (S). But with this value, the protocol is unsafe.
+:comment The correct value is 2*sigma (D). MCMT correctly reports the violation
+:comment (for the safe version of the protocol, see file csma.in)
+
+
+
+:comment L=lambda=808, S=sigma=26, D=2*sigma=52
+:smt (define L::real)
+:smt (define S::real)
+:smt (define D::real)
+:comment F is the clock upper bound of transition from location transm (1) to location retry (2).
+:comment If F is fixed at sigma (S=26), the protocol is unsafe
+:smt (define F::real)
+
+:comment a,c: client's location and clock
+:comment b,C: bus' location and clock
+:local a int
+:global b int
+:local c real
+:global C real
+
+
+:eevar d real
+
+:system_axiom 
+:var x
+:cnj (and (= L 808) (= S 26) (= D 52) (= F 26) )
+
+
+
+:initial
+:var x
+:cnj (= a[x] 0) (= b[x] 0) (= c[x] 0) (= C[x] 0)
+
+:comment the system is unsafe when two senders are in transmission location
+:comment and one of them is there from at least 2*sigma time units
+:unsafe
+:var z1
+:var z2
+:cnj (= a[z1] 1) (= a[z2] 1) (> c[z1] D)
+
+:comment t1
+:comment FROM wait(0)/idle(0)
+:comment TO transm(1)/active(1) INV c<=L
+:comment UPDATES c=0,C=0
+:comment SYNC begin
+:transition
+:var x
+:var j
+:guard (= a[x] 0) (= b[x] 0)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val 1
+ :val 0
+ :val 0
+:case
+ :val a[j]
+ :val 1
+ :val c[j]
+ :val 0
+
+:comment t2
+:comment FROM wait(0)/active(1)
+:comment TO transm(1)/collision(2) INV c<=L&&C<S
+:comment GUARD C<S
+:comment UPDATES c=0,C=0
+:comment SYNC begin
+:transition
+:var x
+:var j
+:guard (= a[x] 0) (= b[x] 1) (< C[x] S)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val 2
+ :val 0
+ :val 0
+:case
+ :val a[j]
+ :val 2
+ :val c[j]
+ :val 0
+
+:comment t3
+:comment FROM wait(0)/active(1)
+:comment TO retry(2)/active(1) INV c<D
+:comment GUARD C>=S
+:comment UPDATES c=0
+:comment SYNC busy
+:transition
+:var x
+:var j
+:guard (= a[x] 0) (= b[x] 1) (>= C[x] S)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val 1
+ :val 0
+ :val C[j]
+:case
+ :val a[j]
+ :val 1
+ :val c[j]
+ :val C[j]
+
+:comment t4
+:comment FROM wait(0)/collision(2)
+:comment TO wait(0)/idle(0)
+:comment GUARD C<S
+:comment UPDATES c=0,C=0
+:comment SYNC BROADCAST cd
+:transition
+:var x
+:var j
+:guard (= a[x] 0) (= b[x] 2) (< C[x] S)
+:numcases 7
+:case (= x j)
+ :val 0
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 0)
+ :val a[j]
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 0)
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 1) (< c[j] F)
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 2) (< c[j] D)
+ :val a[j]
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 1) (not (< c[j] F))
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0 
+:case (= a[j] 2) (not (< c[j] D))
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0
+ 
+:comment t5
+:comment FROM wait(0)/collision(2)
+:comment TO retry(2)/idle(0) INV c<D
+:comment GUARD C<S
+:comment UPDATES c=0,C=0
+:comment SYNC BROADCAST cd
+:transition
+:var x
+:var j
+:guard (= a[x] 0) (= b[x] 2) (< C[x] S)
+:numcases 7
+:case (= x j)
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 0)
+ :val a[j]
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 0)
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 1) (< c[j] F)
+ :val 2
+ :val 0
+ :val 0
+ :val 0 
+:case (= a[j] 2) (< c[j] D)
+ :val a[j]
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 1) (not (< c[j] F))
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0 
+:case (= a[j] 2) (not (< c[j] D))
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0
+
+:comment t6
+:comment FROM transm(1)/active(1)
+:comment TO wait(0)/active(0)
+:comment GUARD c==L
+:comment UPDATES c=0,C=0
+:comment SYNC end
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= b[x] 1) (= c[x] L)
+:numcases 2
+:case (= x j)
+ :val 0
+ :val 0
+ :val 0
+ :val 0
+:case
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0
+
+:comment t7
+:comment FROM transm(1)/collision(2)
+:comment TO retry(2)/idle(0) INV c<D
+:comment GUARD c<D&&C<S
+:comment UPDATES c=0,C=0
+:comment SYNC BROADCAST cd
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= b[x] 2) (< c[x] F) (< C[x] S)
+:numcases 7
+:case (= x j)
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 0)
+ :val a[j]
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 0)
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 1) (< c[j] F)
+ :val 2
+ :val 0
+ :val 0
+ :val 0 
+:case (= a[j] 2) (< c[j] D)
+ :val a[j]
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 1) (not (< c[j] F))
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0 
+:case (= a[j] 2) (not (< c[j] D))
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0
+
+:comment t8
+:comment FROM retry(2)/idle(0)
+:comment TO transm(1)/active(1) INV c<=L
+:comment GUARD c<D
+:comment UPDATES c=0,C=0
+:comment SYNC begin
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (= b[x] 0) (< c[x] D)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val 1
+ :val 0
+ :val 0
+:case
+ :val a[j]
+ :val 1
+ :val c[j]
+ :val 0
+
+:comment t9
+:comment FROM retry(2)/active(1)
+:comment TO transm(1)/collision(2) INV c<=L&&C<S
+:comment GUARD c<D&&C<S
+:comment UPDATES c=0,C=0
+:comment SYNC begin
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (= b[x] 1) (< c[x] D) (< C[x] S)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val 2
+ :val 0
+ :val 0
+:case
+ :val a[j]
+ :val 2
+ :val c[j]
+ :val 0
+
+:comment t10
+:comment FROM retry(2)/collision(2)
+:comment TO retry(2)/idle(0) INV c<D
+:comment GUARD c<D&&C<S
+:comment UPDATES c=0,C=0
+:comment SYNC BROADCAST cd
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (= b[x] 2) (< c[x] D) (< C[x] S)
+:numcases 7
+:case (= x j)
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 0)
+ :val a[j]
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 0)
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 1) (< c[j] F)
+ :val 2
+ :val 0
+ :val 0
+ :val 0 
+:case (= a[j] 2) (< c[j] D)
+ :val a[j]
+ :val 0
+ :val 0
+ :val 0
+:case (= a[j] 1) (not (< c[j] F))
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0 
+:case (= a[j] 2) (not (< c[j] D))
+ :val a[j]
+ :val 0
+ :val c[j]
+ :val 0
+
+:comment REMARK ABOUT DELAY TRANSITIONS
+:comment Delays transitions require an existential quantified time variable (see eevar declaration)
+:comment but no existentially quantified index variable. Since mcmt syntax requires instead
+:comment at least one existential quantified index variable, we must indicate it as x and
+:comment split consequently the delay transition into many cases according to the automaton's locations.
+
+:comment t11
+:comment DELAY wait(0)/idle(0)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 0) (= b[x] 0)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+
+:comment t12
+:comment DELAY transm(1)/idle(0)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 1) (= b[x] 0) (<= (+ c[x] d) L)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+
+:comment t13
+:comment DELAY retry(2)/idle(0)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 2) (= b[x] 0) (< (+ c[x] d) D)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+
+:comment t14
+:comment wait(0)/active(1)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 0) (= b[x] 1)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+
+:comment t15
+:comment DELAY transm(1)/active(1)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 1) (= b[x] 1) (<= (+ c[x] d) L)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+
+:comment t16
+:comment DELAY retry(2)/active(1)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 2) (= b[x] 1) (< (+ c[x] d) D)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+
+:comment t17
+:comment DELAY wait(0)/collision(2)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 0) (= b[x] 2) (< (+ C[x] d) S)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+
+:comment t18
+:comment DELAY transm(1)/collision(2)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 1) (= b[x] 2) (<= (+ c[x] d) L) (< (+ C[x] d) S)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+
+:comment t19
+:comment DELAY retry(2)/collision(2)
+:transition
+:var x
+:var j
+:guard (> d 0) (= a[x] 2) (= b[x] 2) (< (+ c[x] d) D) (< (+ C[x] d) S)
+:uguard (= a[j] 0)
+:uguard (= a[j] 1) (<= (+ c[j] d) L)
+:uguard (= a[j] 2) (< (+ c[j] d) D)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+:case
+ :val a[j]
+ :val b[j]
+ :val (+ c[j] d)
+ :val (+ C[j] d)
+

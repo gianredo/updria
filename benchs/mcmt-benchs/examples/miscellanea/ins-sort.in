@@ -1,0 +1,48 @@
+
+
+:comment this is the insertion sort from Section 4 of Ghilardi-Ranise Technical Report RI325-09
+:comment to avoid divergence, activate invariant search with -i2 or -i3 or -a or -I (-i1 is not sufficient)
+
+:smt (define-type flag (subrange 0 1))
+:smt  (define S::(-> int int bool))
+
+:local u flag
+:local d int
+
+
+:system_axiom
+:var x
+:var y
+:cnj (=> (S x y) (= y (+ x 1)))
+
+:initial 
+:var x
+:var y
+:cnj (= (= u[x] 1) (= x 0)) (=> (S x y) (or (= x 0) (<= d[x] d[y])))
+ 
+:unsafe 
+:var x 
+:var y
+:cnj  (S x y) (> d[x] d[y]) (<= u[x] u[y])  
+
+
+:comment unique_transition
+:transition
+:var x
+:var y
+:var j
+:guard (S x y) (= u[x] 1) (> d[x] d[y]) (= u[y] 0)
+:numcases 3
+:case (= x j)
+ :val 1
+ :val d[y]
+:case (= y j)
+ :val 1
+ :val d[x]
+:case (not (= x j)) (not (= y j))
+ :val u[j]
+ :val d[j]
+
+
+
+

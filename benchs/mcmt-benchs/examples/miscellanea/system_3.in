@@ -1,0 +1,195 @@
+:comment 	SOURCE: A. Domenici. APPUNTI PER LE LEZIONI DI INGEGNERIA DEI SISTEMI
+:comment 	Petri Net's example: "A Production System" 
+:comment        made by Elisabetta Vigolo
+
+
+:index nat
+
+
+
+
+
+:comment ---------- FUNCTIONS and PREDICATES -----------
+:comment	We need of 3 Petri Nets: one for the producer, one for the consumer and one for the shop. 
+
+
+
+:comment  p1
+:global a int
+
+:comment  p2
+:global b int
+
+:comment  m1
+:global c int
+
+:comment  m2
+:global d int
+
+:comment  c1
+:global e int
+
+:comment  c2
+:global f int
+
+
+
+:initial
+:var x
+:cnj (=  a[x]  1) (=  b[x]  0) (=  c[x]  0) (=  d[x]  2) (=  e[x]  0) (=  f[x]  1) 
+
+:unsafe 
+:var z1
+:cnj (=  a[z1]  0) (=  e[z1]  0) (=  d[z1]  0) (=  c[z1]  0) 
+
+:comment :u_cnj (=  a[z1]  0) (=  e[z1]  0) (=  d[z1]  0) (=  f[z1]  0) 
+
+
+:system_axiom
+:var x
+:cnj (and (>= a[x] 0)  (>= b[x] 0)  (>= c[x] 0) (>= d[x] 0) (>= e[x] 0)  (>= f[x] 0)    )
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (>=  a[x]  1) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  -1)
+ :val (+  b[x]  1)
+ :val  c[x]
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+:case 
+ :val (+  a[x]  -1)
+ :val (+  b[x]  1)
+ :val  c[x]
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (>=  b[x]  1) (>=  d[x]  1) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  1)
+ :val (+  b[x]  -1)
+ :val (+  c[x]  1)
+ :val (+  d[x]  -1)
+ :val  e[x]
+ :val  f[x]
+:case 
+ :val (+  a[x]  1)
+ :val (+  b[x]  -1)
+ :val (+  c[x]  1)
+ :val (+  d[x]  -1)
+ :val  e[x]
+ :val  f[x]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (>=  f[x]  1) (>=  c[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  -1)
+ :val (+  d[x]  1)
+ :val (+  e[x]  1)
+ :val (+  f[x]  -1)
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  -1)
+ :val (+  d[x]  1)
+ :val (+  e[x]  1)
+ :val (+  f[x]  -1)
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (>=  e[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val (+  e[x]  -1)
+ :val (+  f[x]  1)
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val (+  e[x]  -1)
+ :val (+  f[x]  1)
+
+
+
+:comment	We have to add 2 fused transitions: T5=T1T2 and T6=T3T4
+:comment T 5
+:transition
+:var x
+:var j
+:guard (>=  a[x]  1) (>=  d[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val (+  d[x]  -1)
+ :val  e[x]
+ :val  f[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val (+  d[x]  -1)
+ :val  e[x]
+ :val  f[x]
+
+
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (>=  c[x]  1) (>=  f[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  -1)
+ :val (+  d[x]  1)
+ :val  e[x]
+ :val  f[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  -1)
+ :val (+  d[x]  1)
+ :val  e[x]
+ :val  f[x]
+
+
+
+:comment	We ask to MCMT to accelerate all transitions it can.
+:comment :accelerate_all_transitions_you_can
+:comment :display_accelerated_transitions
+

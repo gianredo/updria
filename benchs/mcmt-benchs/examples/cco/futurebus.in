@@ -1,0 +1,238 @@
+
+
+:comment      SOURCE: Abdulla et al., TACAS 2007
+:comment      since the present release of MCMT does not support two existentially quantified variables
+:comment      in guards containing a universal quantifier, the transformation to the stopping failure/approximated model
+:comment      has been performed manually  (location 10 is the crash state)
+
+
+:smt (define-type locations (subrange 1 10))
+
+
+
+:local a locations
+
+:initial 
+:var x
+:cnj (= a[x] 9)
+ 
+:unsafe 
+:var x 
+:var y
+:cnj (= a[x] 2)  (= a[y] 6)
+ 
+
+
+:comment t1
+:transition
+:var x
+:var j
+:guard (= a[x] 9)
+:numcases 6
+:case (= x j)
+ :val 1
+:case (= a[j] 6)
+ :val 4
+:case (= a[j] 2)
+ :val 3
+:case (= a[j] 5)
+ :val 3
+:case (not (= a[j] 6)) (not (= a[j] 2)) (not (= a[j] 5)) (not (= a[j] 8))
+ :val a[j]
+:case (= a[j] 8)     
+ :val 10
+
+:comment t2
+:transition
+:var x
+:var j
+:guard (= a[x] 4)
+:numcases 3
+:case (= x j)
+ :val 2
+:case (= a[j] 1)
+ :val 2
+:case (not (= a[j] 1))
+ :val a[j]
+
+:comment t3
+:transition
+:var x
+:var j
+:guard (= a[x] 3)
+:numcases 4
+:case (= x j)
+ :val 2
+:case (= a[j] 1)
+ :val 2
+:case (= a[j] 3)
+ :val 2
+:case (not (= a[j] 1)) (not (= a[j] 3))
+ :val a[j]
+
+:comment t4
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 1)  (= a[y] 1)
+:numcases 4
+:case (= x j)
+ :val 2
+:case (= a[j] 1)
+ :val 2
+:case (not (= a[j] 1)) (not (= a[j] 3)) (not (= a[j] 4))
+ :val a[j]
+:case (= a[j] 3)
+ :val 10
+
+:comment t4
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 1)  (= a[y] 1)
+:numcases 4
+:case (= x j)
+ :val 2
+:case (= a[j] 1)
+ :val 2
+:case (not (= a[j] 1)) (not (= a[j] 3)) (not (= a[j] 4))
+ :val a[j]
+:case (= a[j] 4)
+ :val 10
+
+:comment t5
+:transition
+:var x
+:var j
+:guard (= a[x] 1)
+:numcases 3
+:case (= x j)
+ :val 5
+:case (not (= a[j] 3)) (not (= a[j] 4)) (not (= a[j] 1))
+ :val a[j]
+:case (= a[j] 3)
+ :val 10
+
+:comment t5
+:transition
+:var x
+:var j
+:guard (= a[x] 1)
+:numcases 3
+:case (= x j)
+ :val 5
+:case (not (= a[j] 3)) (not (= a[j] 4)) (not (= a[j] 1))
+ :val a[j]
+:case (= a[j] 4)
+ :val 10
+
+:comment t5
+:transition
+:var x
+:var j
+:guard (= a[x] 1)
+:numcases 3
+:case (= x j)
+ :val 5
+:case (not (= a[j] 3)) (not (= a[j] 4)) (not (= a[j] 1))
+ :val a[j]
+:case (= a[j] 1)
+ :val 10
+
+:comment t6
+:transition
+:var x
+:var j
+:guard (= a[x] 9)
+:numcases 10
+:case (= x j)
+ :val 8
+:case (= a[j] 4)
+ :val 9
+:case (= a[j] 2)
+ :val 9
+:case (= a[j] 5)
+ :val 9
+:case (= a[j] 3)
+ :val 9
+:case (= a[j] 1)
+ :val 9
+:case (= a[j] 7)
+ :val 9
+:case (= a[j] 6)
+ :val 7
+:case (not (= a[j] 4)) (not (= a[j] 2)) (not (= a[j] 5)) (not (= a[j] 3))  (not (= a[j] 1)) (not (= a[j] 7)) (not (= a[j] 6)) (not (= a[j] 8))
+ :val a[j]
+:case (= a[j] 8)
+ :val 10
+
+
+:comment t7
+:transition
+:var x
+:var j
+:guard (= a[x] 7)
+:numcases 3
+:case (= x j)
+ :val 9
+:case (= a[j] 8)
+ :val 6
+:case (not (= a[j] 8))
+ :val a[j]
+
+:comment t8
+:transition
+:var x
+:var j
+:guard (= a[x] 8)
+:numcases 4
+:case (= x j)
+ :val 6
+:case (= a[j] 8)
+ :val 6
+:case (not (= a[j] 8)) (not (= a[j] 7))
+ :val a[j]
+:case (= a[j] 7)
+ :val 10
+
+:comment t9
+:transition
+:var x
+:var j
+:guard (= a[x] 5)
+:numcases 2
+:case (= x j)
+ :val 6
+:case     
+ :val a[j]
+
+:comment t10
+:transition
+:var x
+:var j
+:guard (= a[x] 6)
+:numcases 2
+:case (= x j)
+ :val 6
+:case     
+ :val a[j]
+
+:comment t11
+:transition
+:var x
+:var j
+:guard (= a[x] 2)
+:numcases 3
+:case (= x j)
+ :val 6
+:case (= a[j] 2)
+ :val 9
+:case (not (= a[j] 2))
+ :val a[j]
+
+
+
+
+

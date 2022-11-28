@@ -1,0 +1,380 @@
+
+:comment  Base version of ARP protocol as described in RFC 826
+:comment  Elena Pagani -- Last update: Feb.23, 2017
+
+:comment  Modelization with one malicious and one victim node
+:comment  Malicious sends broadcast Requests
+:comment  Malicious may also send a malicius Reply when target of a Request
+
+:index nat
+:smt (define N::nat)
+
+:comment  phi counts the phase of the computation
+:global phi nat
+:comment  I indicates whether at this phase all hosts performed their actions
+:global I int
+
+:comment  flag for host sending message
+:local sm nat
+:comment  MAC of victim in caches
+:local CM nat
+:comment  IP of victim in caches
+:local CP nat
+:comment  flag for host updating cache
+:local cu nat
+
+:comment  all addresses (both MAC and IP) equal the node ID
+:comment  target ip address
+:global tp nat
+:comment  source hardware address
+:global sh nat
+:comment  source ip address
+:global sp nat
+
+
+:comment  ------- MODELIZATION -------
+:comment  Malicious is node 1.  Victim is node 2.
+:comment  "Honest" is any node behaving properly but different from victim
+
+
+:comment  ------- SYSTEM AXIOMS -------
+:comment  none
+
+
+:comment  ------- INITIAL & UNSAFE -------
+
+:initial
+:var x
+:comment  no process has done anything
+:cnj (= phi 0) (= I 0) (= sh 0) (= sp 0) (= tp 0) (= sm[x] 0) (= CM[x] 0) (= CP[x] 0) (= cu[x] 0)
+
+:unsafe
+:var z1
+:comment  >=1 process remembers MAC(v)= m for IP(v)=v
+:cnj (not (= CM[z1] 2)) (= CP[z1] 2)
+
+
+:comment  ------- TRANSITIONS -------
+
+:comment  T1
+:comment  choosing random sender and target; set sm[j] and tp fields
+:transition
+:var x
+:var y
+:var j
+:guard (= phi 0) (= sm[y] 0)
+:numcases 2
+:case (= x j)
+:val 1
+:val 1
+:val 1
+:val CM[j]
+:val CP[j]
+:val 1
+:val y
+:val sh
+:val sp
+:case (not (= x j))
+:val 1
+:val 1
+:val 0
+:val CM[j]
+:val CP[j]
+:val 0
+:val y
+:val sh
+:val sp
+
+
+:comment  T2
+:comment  sender is any process (nondeterminism: malicious may behave honestly)
+:comment  set honestly the sh and sp fields
+:transition
+:var x
+:var j
+:guard (= phi 1) (= sm[x] 1)
+:numcases 2
+:case (= x j)
+:val 2
+:val 1
+:val 0
+:val CM[j]
+:val CP[j]
+:val 1
+:val tp
+:val x
+:val x
+:case (not (= x j))
+:val 2
+:val 1
+:val 0
+:val CM[j]
+:val CP[j]
+:val 0
+:val tp
+:val x
+:val x
+
+
+:comment  T3
+:comment  sender is malicious
+:comment  set maliciously the sh and sp fields
+:transition
+:var x
+:var j
+:guard (= phi 1) (= sm[x] 1) (= x 1)
+:numcases 2
+:case (= x j)
+:val 2
+:val 1
+:val 0
+:val CM[j]
+:val CP[j]
+:val 1
+:val tp
+:val x
+:val 2
+:case (not (= x j))
+:val 2
+:val 1
+:val 0
+:val CM[j]
+:val CP[j]
+:val 0
+:val tp
+:val x
+:val 2
+
+
+:comment  T4
+:comment  Request processing when source IP != victim IP
+:comment  heard Request from honest --> skip
+:transition
+:var x
+:var j
+:guard (= phi 2) (= cu[x] 0) (< I N) (not (= sp 2))
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val tp
+:val sh
+:val sp
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T5
+:comment  cache update when source IP = victim IP and node not target but with cache info
+:comment  sender is either victim or malicious
+:transition
+:var x
+:var j
+:guard (= phi 2) (= cu[x] 0) (< I N) (= sp 2) (not (= x tp)) (> CP[x] 0)
+:numcases 2
+:case (= x j) 
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val sh
+:val sp
+:val 1
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T6
+:comment  source IP = victim IP and node not target with no cache info --> skip
+:comment  sender is either victim or malicious
+:transition
+:var x
+:var j
+:guard (= phi 2) (= cu[x] 0) (< I N) (= sp 2) (not (= x tp)) (= CP[x] 0)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T7
+:comment  source IP = victim IP and node target
+:comment  sender is either victim or malicious
+:comment  target may be the victim but it doesn't notice any conflict
+:transition
+:var x
+:var j
+:guard (= phi 2) (= cu[x] 0) (< I N) (= sp 2) (= x tp)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val 1
+:val sh
+:val sp
+:val 1
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T8
+:comment  honest/victim target generates Reply (unicast) when all nodes have fired
+:comment  it may also be malicious who behaves correctly
+:transition
+:var x
+:var j
+:guard (= phi 2) (>= I N) (= sm[x] 1) (= cu[x] 1)
+:numcases 2
+:case (= x j)
+:val 3
+:val 1
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val sp
+:val x
+:val x
+:case (not (= x j))
+:val 3
+:val 1
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val sp
+:val x
+:val x
+
+
+:comment  T9
+:comment  malicious target may generate malicious Reply (unicast) when all nodes have fired
+:transition
+:var x
+:var j
+:guard (= phi 2) (>= I N) (= sm[x] 1) (= x 1) (= cu[x] 1)
+:numcases 2
+:case (= x j)
+:val 3
+:val 1
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val sp
+:val x
+:val 2
+:case (not (= x j))
+:val 3
+:val 1
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val sp
+:val x
+:val 2
+
+
+:comment  T10
+:comment  Reply processing (unicast Reply)
+:transition
+:var x
+:var j
+:guard (= phi 3) (= x tp)
+:numcases 2
+:comment  target of the Reply
+:case (= x j)
+:val 4
+:val I
+:val sm[j]
+:val sh
+:val sp
+:val cu[j]
+:val tp
+:val sh
+:val sp
+:comment  other host does nothing
+:case (not (= x j))
+:val 4
+:val I
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T11
+:comment  re-set everything but caches before new iteration
+:transition
+:var j
+:guard (= phi 4)
+:numcases 1
+:case
+:val 0
+:val 0
+:val 0
+:val CM[j]
+:val CP[j]
+:val 0
+:val 0
+:val 0
+:val 0
+
+

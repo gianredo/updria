@@ -1,0 +1,339 @@
+
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+:comment TTA start up protocol
+:comment Taken from Dutertre,Sorea-"Timed Systems in SAL", SRI International,
+:comment SDL Technical Report SRI-SDL-04-03, October 21, 2004
+
+:comment TTA protocol provides a reliable logical bus connecting clients (aka nodes).
+:comment Each node is linked to a central guardian
+:comment which forwards messages, masks faulty nodes' transmissions, and avoids colli-
+:comment sions during system's start-up. The common bus is shared among nodes and
+:comment is accessed by Time-Division Multiple-Access (TDMA) policy. Since each node
+:comment must send data during its time slot, and can only check its local clock to estab-
+:comment lish whether the current slot is its own slot, the start-up problem amounts to
+:comment synchronize the clocks so that their differences are as small as possible.
+:comment The basic idea of the start-up protocol is that, when
+:comment a node receives a packet (which carries the identity of the sender), it knows the
+:comment position of the TDMA schedule for the current time and consequently can reset
+:comment its clock. From this event, a new transmission is going to start every interval with
+:comment duration equal to the slot time.
+
+:comment We present a simplified version of the protocol in which nodes
+:comment cannot fail and collisions are not considered. Besides there are
+:comment executions that may deadlock the systems. The aim of this example
+:comment is not modelling a TTA protocol as faithfully as possible but showing
+:comment the capabilities of MCMT to manage infinite-states parameterized systems.
+:comment Under such assumptions, the guardian has no role, and only nodes are modelled.
+:comment In location init (111), the node performs some initialization.
+:comment After at most max_init_time (M) time units, it enters in location
+:comment listen (112). If it receives an i_frame (that is, a message carrying data), the node knows
+:comment the current slot scheduled and so is synchronized. Otherwise, after tau_listen(i)
+:comment time units, it sends a "wake up" signal to the other nodes (that is, a cs_frame)
+:comment and goes to location coldstart (113). The node goes in this location as well, when
+:comment it gets a cs_frame from another node. This step is performed so that a better
+:comment synchronization could be achieved when the system has been recently powered
+:comment on. In location coldstart (113), the node goes in location active (114) as soon as it receives
+:comment either an i_frame or a cs_frame. If nothing happens after tau_coldstart(i) time
+:comment units, the node broadcast a new cs_frame. When the node reaches the location
+:comment active (114), it is synchronized and it can send data whenever its slot turn comes.
+
+:comment The time constraints are the following (N is the number of processes):
+:comment slot_time = 3
+:comment round_time = slot_time * N
+:comment tau_startup(i) = slot_time * (i - 1)
+:comment tau_listen(i) = 2 * round_time + tau_startup(i)
+:comment tau_coldstart(i) = round_time + tau_startup(i)
+:comment Due to a Yices bug, an expression can't contain operands of different types.
+:comment For example, we can't compare a variable of type real (like a clock) with
+:comment a variable of type integer. In similar cases, Yices doesn't emit
+:comment any error messages, but simply crashes the program.
+:comment So we have modified the definition of the tau_startup delay when
+:comment the time is real (that is, tau_startup is equal to slot time). 
+:comment If the time is integer, the bug doesn't manifest (see tta2.in for
+:comment the integer-time version).
+
+:comment N is the number of processes
+:smt (define N::int)
+:comment S, R, M are the slot time, the round time and the max_init_time
+:smt (define S::real)
+:smt (define R::real)
+:smt (define M::real)
+
+
+
+:comment a, c, s are the location counter, the local clock and the current slot counter
+:local a int
+:local c real
+:local s int
+
+
+:comment Since time is real, tau_startup has been modified as stated above
+:eevar d real
+
+:comment The definitions of the predicate V and of the system axiom below
+:comment are a technical trick in order to limit the number of the processes
+:comment of the system. Normally, this doesn't happen, but the TTA start up
+:comment protocol needs some parameters which depend upon the size of the
+:comment system (see round_time definition).
+:smt (define V::(-> int bool))
+:system_axiom
+:var x
+:cnj (=> (V x) (< x N))
+
+:system_axiom
+:var x
+:cnj (and (= S 3) (= R (* S N)) (= M 30) )
+
+
+:system_axiom
+:var x
+:cnj (and  (>= N 0) (>= a[x] 0) (>= s[x] 0))
+
+
+:initial
+:var x
+:cnj (=> (V x) (and (= a[x] 111) (= c[x] 0)))
+
+:comment A system is unsafe when two clients are active but their slot counters
+:comment don't agree
+:unsafe
+:var x
+:var y
+:cnj (V x) (V y) (= a[x] 114) (= a[y] 114) (not (= s[x] s[y]))
+
+:comment t1
+:comment FROM init(111) INV c <= M
+:comment TO listen(112) INV c <= (+ (* 2 R) S)
+:comment UPDATES c = 0
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 111)
+:numcases 2
+:case (= x j)
+ :val 112
+ :val 0
+ :val s[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment t2
+:comment FROM listen(112) INV c <= (+ (* 2 R) S)
+:comment TO coldstart(113) INV c <= (+ R S)
+:comment GUARD c >= (+ (* 2 R) S)
+:comment SYNC BROADCAST cs_frame
+:comment UPDATES c = 0
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 112) (>= c[x] (+ (* 2 R) S))
+:numcases 5
+:case (= x j)
+ :val 113
+ :val 0
+ :val s[j]
+:case (= a[j] 112)
+ :val 113
+ :val 0
+ :val s[j]
+:case (= a[j] 113)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 111)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+:case (= a[j] 114)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment t3
+:comment FROM coldstart(113) INV c <= (+ R S)
+:comment TO coldstart(113) INV c <= (+ R S)
+:comment GUARD c >= (+ R S)
+:comment SYNC BROADCAST cs_frame
+:comment UPDATES c = 0
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 113) (>= c[x] (+ R S))
+:numcases 5
+:case (= x j)
+ :val a[j]
+ :val 0
+ :val s[j]
+:case (= a[j] 112)
+ :val 113
+ :val 0
+ :val s[j]
+:case (= a[j] 113)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 111)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+:case (= a[j] 114)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment t4
+:comment this transition has been split in two: if s < N and if s == N
+:comment FROM active(114) INV c <= S
+:comment TO active(114) INV c <= S
+:comment GUARD c >= S && s+1 == x
+:comment SYNC BROADCAST i_frame
+:comment UPDATES c = 0, s = x
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 114) (>= c[x] S) (< s[x] N) (= (+ s[x] 1) x)
+:numcases 5
+:case (= x j)
+ :val a[j]
+ :val 0
+ :val x
+:case (= a[j] 112)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 113)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 114)
+ :val 114
+ :val 0
+ :val (+ s[j] 1)
+:case (= a[j] 111)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment t5
+:comment this transition has been split in two: if s < N and if s == N
+:comment FROM active(114) INV c <= S
+:comment TO active(114) INV c <= S
+:comment GUARD c >= S && s+1 == x
+:comment SYNC BROADCAST i_frame
+:comment UPDATES c = 0, s = x
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 114) (>= c[x] S) (= s[x] N) (= 0 x)
+:numcases 5
+:case (= x j)
+ :val a[j]
+ :val 0
+ :val x
+:case (= a[j] 112)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 113)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 114)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 111)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment REMARK ABOUT DELAY TRANSITIONS
+:comment Delays transitions require an existential quantified time variable (see eevar declaration)
+:comment but no existentially quantified index variable. Since mcmt syntax requires instead
+:comment at least one existential quantified index variable, we must indicate it as x and
+:comment split consequently the delay transition into many cases according to the automaton's locations.
+
+:comment t6
+:comment delay
+:transition
+:var x
+:var j
+:guard (V x) (> d 0) (= a[x] 111) (<= (+ c[x] d) M)
+:uguard (= a[j] 111) (<= (+ c[j] d) M)
+:uguard (= a[j] 112) (<= (+ c[j] d) (+ (* 2 R) S))
+:uguard (= a[j] 113) (<= (+ c[j] d) (+ R S))
+:uguard (= a[j] 114) (<= (+ c[j] d) S)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+
+:comment t7
+:comment delay
+:transition
+:var x
+:var j
+:guard (V x) (> d 0) (= a[x] 112) (<= (+ c[x] d) (+ (* 2 R) S))
+:uguard (= a[j] 111) (<= (+ c[j] d) M)
+:uguard (= a[j] 112) (<= (+ c[j] d) (+ (* 2 R) S))
+:uguard (= a[j] 113) (<= (+ c[j] d) (+ R S))
+:uguard (= a[j] 114) (<= (+ c[j] d) S)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+
+:comment t8
+:comment delay
+:transition
+:var x
+:var j
+:guard (V x) (> d 0) (= a[x] 113) (<= (+ c[x] d) (+ R S))
+:uguard (= a[j] 111) (<= (+ c[j] d) M)
+:uguard (= a[j] 112) (<= (+ c[j] d) (+ (* 2 R) S))
+:uguard (= a[j] 113) (<= (+ c[j] d) (+ R S))
+:uguard (= a[j] 114) (<= (+ c[j] d) S)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+
+:comment t9
+:comment delay
+:transition
+:var x
+:var j
+:guard (V x) (> d 0) (= a[x] 114) (<= (+ c[x] d) S)
+:uguard (= a[j] 111) (<= (+ c[j] d) M)
+:uguard (= a[j] 112) (<= (+ c[j] d) (+ (* 2 R) S))
+:uguard (= a[j] 113) (<= (+ c[j] d) (+ R S))
+:uguard (= a[j] 114) (<= (+ c[j] d) S)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]

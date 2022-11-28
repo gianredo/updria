@@ -1,0 +1,180 @@
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+
+:comment Fischer's algorithm
+:comment See Rust-"Operational Semantics for Timed Systems: A Non-standard Approach to
+:comment Uniform Modeling of Timed and Hybrid Systems", volume 3456 of LNCS, chapter
+:comment 13. "A Case Study: Fischer's Protocol". Springer-Verlag, 2005.
+
+:smt (define-type locations ( subrange 1 5))
+
+:comment d1
+:smt (define a::real)
+:comment d2
+:smt (define b::real)
+:comment dt
+:eevar c real
+:comment s
+:local d locations
+:comment now
+:global e real
+:comment v
+:global f int
+:comment tr
+:local g real
+:comment tw
+:local h real
+
+:comment ----------------------axioms--------------------------
+:comment without the condition below, it is well-known that the protocol is not safe
+
+:system_axiom
+:var x
+:cnj  (<  a  b) 
+
+:comment ----------------------axioms--------------------------
+
+:initial
+:var x
+:cnj (=  e[x]  0) (=  f[x]  -1) (=  d[x]  1) 
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  d[z1]  5) (=  d[z2]  5) 
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (>  c  0) (= x x)
+:numcases 2
+:case (= x j)
+ :val d[j]
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+:case 
+ :val d[j]
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  d[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+:case 
+ :val d[j]
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  d[x]  2) (=  f[x]  -1) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val (+  e[x]  c)
+ :val f[j]
+ :val  e[x]
+ :val h[j]
+:case 
+ :val d[j]
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  d[x]  3) (<= (+  e[x]  c) (+  g[x]  a)) 
+:numcases 2
+:case (= x j)
+ :val  4
+ :val (+  e[x]  c)
+ :val x
+ :val g[j]
+ :val (+  e[x]  c)
+:case 
+ :val d[j]
+ :val (+  e[x]  c)
+ :val x
+ :val g[j]
+ :val h[j]
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  d[x]  4) (>=  e[x] (+  h[x]  b)) (not (= f[x] x) ) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+:case 
+ :val d[j]
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  d[x]  4) (>=  e[x] (+  h[x]  b)) (=  f[x] x) 
+:numcases 2
+:case (= x j)
+ :val  5
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+:case 
+ :val d[j]
+ :val (+  e[x]  c)
+ :val f[j]
+ :val g[j]
+ :val h[j]
+
+:comment T 7
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  d[x]  5) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val (+  e[x]  c)
+ :val  -1
+ :val g[j]
+ :val h[j]
+:case 
+ :val d[j]
+ :val (+  e[x]  c)
+ :val  -1
+ :val g[j]
+ :val h[j]
+

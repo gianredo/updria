@@ -1,0 +1,302 @@
+
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+:comment TTA start up protocol (integer time version)
+:comment Taken from Dutertre,Sorea-"Timed Systems in SAL", SRI International,
+:comment SDL Technical Report SRI-SDL-04-03, October 21, 2004
+
+:comment This version of the protocol uses integer time to overcome a
+:comment Yices bug when there are expressions containing operands of different types.
+:comment If the time is integer, the bug doesn't manifest so we can employ
+:comment the original time constraints of the protocol (see tta.in for the real-time version).
+
+:comment The time constraints are the following (N is the number of processes):
+:comment slot_time = 3
+:comment round_time = slot_time * N
+:comment tau_startup(i) = slot_time * (i - 1)
+:comment tau_listen(i) = 2 * round_time + tau_startup(i)
+:comment tau_coldstart(i) = round_time + tau_startup(i)
+
+:comment N is the number of processes
+:smt (define N::int)
+:comment S, R, M are the slot time, the round time and the max_init_time
+:smt (define S::real)
+:smt (define R::real)
+:smt (define M::real)
+
+
+:comment a, c, s are the location counter, the local clock and the current slot counter
+:local a int
+:local c int
+:local s int
+
+
+:comment Time is integer
+:eevar d int
+
+:comment The definitions of the predicate V and of the system axiom below
+:comment are a technical trick in order to limit the number of the processes
+:comment of the system. Normally, this doesn't happen, but the TTA start up
+:comment protocol needs some parameters which depend upon the size of the
+:comment system (see round_time definition).
+:smt (define V::(-> int bool))
+:system_axiom
+:var x
+:cnj (=> (V x) (< x N))
+
+
+
+:system_axiom
+:var x
+:cnj (and  (>= N 0) (>= a[x] 0) (>= c[x] 0) (>= s[x] 0))
+
+:system_axiom
+:var x
+:cnj (and (= S 3) (= R (* S N)) (= M 30) )
+
+:initial
+:var x
+:cnj (=> (V x) (and (= a[x] 111) (= c[x] 0)))
+
+:comment A system is unsafe when two clients are active but their slot counters
+:comment don't agree
+:unsafe
+:var x
+:var y
+:cnj (V x) (V y) (= a[x] 114) (= a[y] 114) (not (= s[x] s[y]))
+
+:comment t1
+:comment FROM init(111) INV c <= M
+:comment TO listen(112) INV c <= (+ (* 2 R) (* S (- x 1)))
+:comment UPDATES c = 0
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 111)
+:numcases 2
+:case (= x j)
+ :val 112
+ :val 0
+ :val s[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment t2
+:comment FROM listen(112) INV c <= (+ (* 2 R) (* S (- x 1)))
+:comment TO coldstart(113) INV c <= (+ R (* S (- x 1)))
+:comment GUARD c >= (+ (* 2 R) (* S (- x 1)))
+:comment SYNC BROADCAST cs_frame
+:comment UPDATES c = 0
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 112) (>= c[x] (+ (* 2 R) (* S (+ x -1))))
+:numcases 5
+:case (= x j)
+ :val 113
+ :val 0
+ :val s[j]
+:case (= a[j] 112)
+ :val 113
+ :val 0
+ :val s[j]
+:case (= a[j] 113)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 111)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+:case (= a[j] 114)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment t3
+:comment FROM coldstart(113) INV c <= (+ R (* S (- x 1)))
+:comment TO coldstart(113) INV c <= (+ R (* S (- x 1)))
+:comment GUARD c >= (+ R (* S (- x 1)))
+:comment SYNC BROADCAST cs_frame
+:comment UPDATES c = 0
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 113) (>= c[x] (+ R (* S (+ x -1))))
+:numcases 5
+:case (= x j)
+ :val a[j]
+ :val 0
+ :val s[j]
+:case (= a[j] 112)
+ :val 113
+ :val 0
+ :val s[j]
+:case (= a[j] 113)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 111)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+:case (= a[j] 114)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment t4
+:comment this transition has been split in two: if s < N and if s == N
+:comment FROM active(114) INV c <= S
+:comment TO active(114) INV c <= S
+:comment GUARD c >= S && s+1 == x
+:comment SYNC BROADCAST i_frame
+:comment UPDATES c = 0, s = x
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 114) (>= c[x] S) (< s[x] N) (= (+ s[x] 1) x)
+:numcases 5
+:case (= x j)
+ :val a[j]
+ :val 0
+ :val x
+:case (= a[j] 112)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 113)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 114)
+ :val 114
+ :val 0
+ :val (+ s[j] 1)
+:case (= a[j] 111)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment t5
+:comment this transition has been split in two: if s < N and if s == N
+:comment FROM active(114) INV c <= S
+:comment TO active(114) INV c <= S
+:comment GUARD c >= S && s+1 == x
+:comment SYNC BROADCAST i_frame
+:comment UPDATES c = 0, s = x
+:transition
+:var x
+:var j
+:guard (V x) (= a[x] 114) (>= c[x] S) (= s[x] N) (= 0 x)
+:numcases 5
+:case (= x j)
+ :val a[j]
+ :val 0
+ :val x
+:case (= a[j] 112)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 113)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 114)
+ :val 114
+ :val 0
+ :val x
+:case (= a[j] 111)
+ :val a[j]
+ :val c[j]
+ :val s[j]
+
+:comment REMARK ABOUT DELAY TRANSITIONS
+:comment Delays transitions require an existential quantified time variable (see eevar declaration)
+:comment but no existentially quantified index variable. Since mcmt syntax requires instead
+:comment at least one existential quantified index variable, we must indicate it as x and
+:comment split consequently the delay transition into many cases according to the automaton's locations.
+
+:comment t6
+:comment delay
+:transition
+:var x
+:var j
+:guard (V x) (> d 0) (= a[x] 111) (<= (+ c[x] d) M)
+:uguard (= a[j] 111) (<= (+ c[j] d) M)
+:uguard (= a[j] 112) (<= (+ c[j] d) (+ (* 2 R) (* S (- j 1))))
+:uguard (= a[j] 113) (<= (+ c[j] d) (+ R (* S (- j 1))))
+:uguard (= a[j] 114) (<= (+ c[j] d) S)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+
+:comment t7
+:comment delay
+:transition
+:var x
+:var j
+:guard (V x) (> d 0) (= a[x] 112) (<= (+ c[x] d) (+ (* 2 R) (* S (+ x -1))))
+:uguard (= a[j] 111) (<= (+ c[j] d) M)
+:uguard (= a[j] 112) (<= (+ c[j] d) (+ (* 2 R) (* S (- j 1))))
+:uguard (= a[j] 113) (<= (+ c[j] d) (+ R (* S (- j 1))))
+:uguard (= a[j] 114) (<= (+ c[j] d) S)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+
+:comment t8
+:comment delay
+:transition
+:var x
+:var j
+:guard (V x) (> d 0) (= a[x] 113) (<= (+ c[x] d) (+ R (* S (+ x -1))))
+:uguard (= a[j] 111) (<= (+ c[j] d) M)
+:uguard (= a[j] 112) (<= (+ c[j] d) (+ (* 2 R) (* S (- j 1))))
+:uguard (= a[j] 113) (<= (+ c[j] d) (+ R (* S (- j 1))))
+:uguard (= a[j] 114) (<= (+ c[j] d) S)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+
+:comment t9
+:comment delay
+:transition
+:var x
+:var j
+:guard (V x) (> d 0) (= a[x] 114) (<= (+ c[x] d) S)
+:uguard (= a[j] 111) (<= (+ c[j] d) M)
+:uguard (= a[j] 112) (<= (+ c[j] d) (+ (* 2 R) (* S (- j 1))))
+:uguard (= a[j] 113) (<= (+ c[j] d) (+ R (* S (- j 1))))
+:uguard (= a[j] 114) (<= (+ c[j] d) S)
+:numcases 2
+:case (= x j)
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val s[j]

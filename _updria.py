@@ -65,6 +65,7 @@ class Statistics:
         self.refinement_time = 0.0
         self.z3_check_time = 0.0
         self.ground_check_time = 0.0
+        self.minimizing_model_time = 0.0
         self.num_z3_calls = 0
         self.added_cubes = 0
         self.blocked_diagrams = 0
@@ -85,6 +86,7 @@ class Statistics:
          "refinement time: %.3f" % self.refinement_time,
          "total z3 check time: %.3f" % self.z3_check_time,
          "ground check time: %.3f" % self.ground_check_time,
+         "minimization models time: %.3f" % self.minimizing_model_time,
          "num z3 calls: %d" % self.num_z3_calls,
          "number of added cubes: %d" % self.added_cubes,
          "number of blocked diagrams: %d" %self.blocked_diagrams,
@@ -956,20 +958,24 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
         print('trying to block cex at frame %d' %cti.frame_number)
         
         # print('trying to block diagram %s' %(substitute_diagram(cti.diagram, predicates_dict, abs_vars)))
-        abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[cti.frame_number-1],\
+        abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars,\
+             frame_sequence[cti.frame_number-1],\
              cti.diagram, predicates_dict, H_formula, hat_init)
 
         s = Solver()     
         s.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
         # for x in predicates_dict:
         #     print(x)
-        if s.check() == z3.unsat:      
+        _stats.num_z3_calls +=1
+        res = measure('z3_check_time', s.check)
+        if res == z3.unsat:      
+            _stats.blocked_diagrams +=1 
             print('blocked')          
             cti_queue.remove(cti)        
             # generalize diagram with unsat cores
             print('generalizing diagram...')
-            gen_diagram = generalize_diagram(paramts, abs_vars, frame_sequence[cti.frame_number-1],\
-             cti.diagram, predicates_dict, H_formula, hat_init)
+            gen_diagram = measure('generalization_time', generalize_diagram, paramts, abs_vars, \
+                frame_sequence[cti.frame_number-1], cti.diagram, predicates_dict, H_formula, hat_init)
             # add diagram to all frames from 1 to frame_number
             for i in range(1, cti.frame_number + 1):
                 if Not(gen_diagram) not in set(frame_sequence[i]):
@@ -977,9 +983,9 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
             s.reset()
             return True
 
-        elif s.check() == z3.sat:
-
-            minimize_model(s, paramts.sorts)
+        elif res == z3.sat:
+            with Timer('minimizing_model_time'):
+                minimize_model(s, paramts.sorts)
             model = s.model()
             n_diagram, universe_dict = extract_diagram(predicates_dict.values(), model, paramts.sorts)
             s.reset()
@@ -1104,7 +1110,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
             #minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
-            diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), model, paramts.sorts)
+            diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), \
+                model, paramts.sorts)
             s.reset()
             # Aadd a cti in the cti_queue
             print('add cti')
@@ -1114,24 +1121,28 @@ def updria(opts, paramts : ParametricTransitionSystem):
             while cti_queue:
                 curr =  cti_queue[-1]
                 #recursevily block the cex
-                recblockres = measure('rec_block_time', recblock, paramts, abstract_predicates_dict, abs_vars, curr, H_formula, hat_init)
+                recblockres = measure('rec_block_time', recblock, paramts, abstract_predicates_dict,\
+                     abs_vars, curr, H_formula, hat_init)
                 if not recblockres:
                     # abstract coutnerexample
                         print('abstract cex')
                         cti_queue.reverse()
                         # for i, c in enumerate(cti_queue):
                         #     banner('diagram at step %d' %(i))
-                        #     concrete_d = substitute_diagram(c.diagram, abstract_predicates_dict, abs_vars)
+                        #     concrete_d = substitute_diagram(c.diagram, abstract_predicates_dict,\
+                        #  abs_vars)
                         #     print(str(concrete_d))
                         s.reset()
                         
                         import _grounder
                         spurious, cex, new_preds, concrete_varlist = measure('ground_check_time', \
-                            _grounder.concretize_cti_queue ,opts, cti_queue, paramts, abstract_predicates_dict, abs_vars)
+                            _grounder.concretize_cti_queue ,opts, cti_queue, paramts, \
+                                abstract_predicates_dict, abs_vars)
                         if not spurious:
                             print('Concrete conterexample is found!')                        
                             return VerificationResult(UNSAFE, cex)
                         else: 
+                            _stats.num_ref_iterations += 1
                             new_preds_dict, n_abs_vars, _ = \
                                 get_abstract_predicates(new_preds, concrete_varlist)
 
@@ -1148,6 +1159,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
             # blocked cex, recompute last formula to see wheter there are more models
             last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
             s.reset()
+            _stats.num_z3_calls += 1
             s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True)) 
             res = measure('z3_check_time', s.check)       
     
@@ -1158,19 +1170,22 @@ def updria(opts, paramts : ParametricTransitionSystem):
   
         # #propagation phase
         # maybe do this in a function..
-        print('propagation phase...')
-        for i in range(1, frame_counter):
-            for d in frame_sequence[i]:
-                if d not in set(frame_sequence[i+1]):
-                    f = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[i+1], \
-                        Not(d), abstract_predicates_dict, H_formula, hat_init)
-                    s1 = Solver()
-                    s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
-                    if s1.check() == z3.unsat:
-                        frame_sequence[i+1].append(d)
-                    # else:
-                    #      print(substitute_diagram(d, abstract_predicates_dict, abs_vars))
-                    s1.reset()
+        with Timer('propagate_time'):
+            print('propagation phase...')
+            for i in range(1, frame_counter):
+                for d in frame_sequence[i]:
+                    if d not in set(frame_sequence[i+1]):
+                        f = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[i+1], \
+                            Not(d), abstract_predicates_dict, H_formula, hat_init)
+                        _stats.num_z3_calls += 1
+                        s1 = Solver()
+                        s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
+                        res = measure('z3_check_time', s1.check)
+                        if res == z3.unsat:
+                            frame_sequence[i+1].append(d)
+                        # else:
+                        #      print(substitute_diagram(d, abstract_predicates_dict, abs_vars))
+                        s1.reset()
                 
             if set(frame_sequence[i+1]) == set(frame_sequence[i]):
                 print('Proved! Inductive invariant:')

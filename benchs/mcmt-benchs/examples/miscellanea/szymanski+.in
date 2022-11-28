@@ -1,0 +1,274 @@
+
+
+:comment   Szymanski mutual exclusion (parameterized)
+:comment   ----------------------------------------------
+:comment   
+:comment   Taken from Manna, Pnueli, "Tools and Rules for the Practicing
+:comment   Verifier",  Technical Report: CS-TR-90-1321, Stanford, 1990
+:comment   
+:comment   parameter N : integer such that N > 1
+:comment   local flag : array [1..N] of {1...5} where forall j.flag[j] = 1
+:comment   
+:comment   P[1] || ... || P[N]
+:comment   
+:comment   where 
+:comment   
+:comment   P[i] := loop forever {
+:comment            l1 : Non-critical
+:comment            l2 : flag[i] := 2;
+:comment            l3 : wait until forall j.flag[j] < 4
+:comment            l4 : flag[i] := 4;
+:comment            l5 : if exists j.flag[j] = 2 then
+:comment                 begin 
+:comment                  l6 : flag[i] := 3;
+:comment                  l7 : wait until exists j. flag[j] = 5
+:comment                 end
+:comment            l8 : flag[i] := 5;
+:comment            l9 : wait until forall j<i.flag[j] < 3
+:comment            l10: CRITICAL
+:comment            l11: wait until forall j.(flag[j] < 3 \/ flag[j] > 4)
+:comment            l12: flag[i] := 1;
+:comment           }
+:comment   
+:comment   The program constructs are translated in the obvious way (see the book
+:comment   by Manna and Pnueli for more details).
+:comment   
+:comment   The mutual exclusion property to be checked is the following:
+:comment   
+:comment      [] (forall i != j.(not(l[i] = 10 /\ l[j] = 10))) .
+:comment   
+:comment   NOTE: it takes half a minute or so to check safety in default mode.  But if
+:comment         you activate invariant synthesis technique with -i1, MCMT
+:comment         immediately terminates with safety!
+
+
+
+
+
+
+
+
+
+:smt (define-type locations ( subrange 1 12))
+:smt (define-type flag_type ( subrange 1 5))
+
+:index int
+
+:comment l
+:local a locations
+:comment flag
+:local b flag_type
+
+
+
+:initial
+:var x
+:cnj (=  a[x]  1) (=  b[x]  1) 
+
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  a[z1]  10) (=  a[z2]  10) 
+
+
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (=  a[x]  2) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val  2
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (=  a[x]  3) (<  b[x]  4) 
+:uguard (<  b[j]  4) 
+:numcases 2
+:case (= x j)
+ :val  4
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (=  a[x]  4) 
+:numcases 2
+:case (= x j)
+ :val  5
+ :val  4
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 5
+:transition
+:var x
+:var y
+:var j
+:guard (=  a[x]  5) (=  b[y]  2) 
+:numcases 2
+:case (= x j)
+ :val  6
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (=  a[x]  6) 
+:numcases 2
+:case (= x j)
+ :val  7
+ :val  3
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 7
+:transition
+:var x
+:var y
+:var j
+:guard (=  a[x]  7) (=  b[y]  5) 
+:numcases 2
+:case (= x j)
+ :val  8
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 8
+:transition
+:var x
+:var j
+:guard (=  a[x]  8) 
+:numcases 2
+:case (= x j)
+ :val  9
+ :val  5
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 9
+:transition
+:var x
+:var j
+:guard (=  a[x]  9) 
+:uguard (< j x) (<  b[j]  3) 
+:numcases 2
+:case (= x j)
+ :val  10
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 10
+:transition
+:var x
+:var j
+:guard (=  a[x]  10) 
+:numcases 2
+:case (= x j)
+ :val  11
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 11
+:transition
+:var x
+:var j
+:guard (=  a[x]  11) 
+:uguard (<  b[j]  3) 
+:numcases 2
+:case (= x j)
+ :val  12
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 12
+:transition
+:var x
+:var j
+:guard (=  a[x]  11) 
+:uguard (>  b[j]  4) 
+:numcases 2
+:case (= x j)
+ :val  12
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 13
+:transition
+:var x
+:var j
+:guard (=  a[x]  12) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val  1
+:case 
+ :val a[j]
+ :val b[j]

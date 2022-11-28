@@ -1,0 +1,183 @@
+
+:smt (define-type locations ( subrange 1 5))
+
+:index nat
+
+
+:smt (define a::real)
+
+:smt (define b::real)
+
+:local s locations
+:global n real
+:global v int
+:local r real
+:local w real
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:system_axiom
+:var x
+:cnj  (<  a  b) 
+
+
+:eevar c real
+
+:comment ----------------------axioms--------------------------
+
+:initial
+:var x
+:cnj (=  n  0) (=  v -1) (=  s[x]  1) 
+
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  s[z1]  5) (=  s[z2]  5) 
+
+
+
+
+:comment T 1
+:transition
+:var j
+:guard (>  c  0) 
+:numcases 1
+:case 
+ :val s[j]
+ :val (+  n  c)
+ :val v
+ :val r[j]
+ :val w[j]
+
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  s[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val (+  n  c)
+ :val v
+ :val r[j]
+ :val w[j]
+:case 
+ :val s[j]
+ :val (+  n  c)
+ :val v
+ :val r[j]
+ :val w[j]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  s[x]  2) (=  v -1) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val (+  n  c)
+ :val v
+ :val n
+ :val w[j]
+:case 
+ :val s[j]
+ :val (+  n  c)
+ :val v
+ :val r[j]
+ :val w[j]
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  s[x]  3) (<= (+  n  c) (+  r[x] a)) 
+:numcases 2
+:case (= x j)
+ :val  4
+ :val (+  n  c)
+ :val x
+ :val r[j]
+ :val (+  n  c)
+:case 
+ :val s[j]
+ :val (+  n  c)
+ :val x
+ :val r[j]
+ :val w[j]
+
+
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  s[x]  4) (>=  n (+  w[x] b)) (not (= v x) ) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val (+  n  c)
+ :val v
+ :val r[j]
+ :val w[j]
+:case 
+ :val s[j]
+ :val (+  n  c)
+ :val v
+ :val r[j]
+ :val w[j]
+
+
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  s[x]  4) (>=  n (+  w[x] b)) (=  v x) 
+:numcases 2
+:case (= x j)
+ :val  5
+ :val (+  n  c)
+ :val v
+ :val r[j]
+ :val w[j]
+:case 
+ :val s[j]
+ :val (+  n  c)
+ :val v
+ :val r[j]
+ :val w[j]
+
+
+
+:comment T 7
+:transition
+:var x
+:var j
+:guard (>  c  0) (=  s[x]  5) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val (+  n  c)
+ :val  -1
+ :val r[j]
+ :val w[j]
+:case 
+ :val s[j]
+ :val (+  n  c)
+ :val  -1
+ :val r[j]
+ :val w[j]
+
+

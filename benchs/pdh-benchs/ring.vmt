@@ -1,0 +1,49 @@
+; VMT translation of ring.pyv (IC3PO flavored)
+(declare-sort node 0)
+
+(define-fun .node ((S node)) node (! S :sort 1))
+
+(declare-fun __leader (node) Bool)
+(declare-fun __pending (node node) Bool)
+
+(declare-fun leader (node) Bool)
+(declare-fun pending (node node) Bool)
+
+(define-fun .leader ((V0 node)) Bool (! (__leader V0) :next leader))
+(define-fun .pending ((V0 node) (V1 node)) Bool (! (__pending V0 V1) :next pending))
+
+(declare-fun le (node node) Bool)
+(declare-fun btw (node node node) Bool)
+
+(define-fun .le ((V0 node) (V1 node)) Bool (! (le V0 V1) :global true))
+(define-fun .btw ((V0 node) (V1 node) (V2 node)) Bool (! (btw V0 V1 V2) :global true))
+
+(define-fun .prop () Bool (!
+ (let (($v (forall ((L1 node) (L2 node)) (=> (and (__leader L1) (__leader L2)) (= L1 L2)))
+ ))
+ (and $v))
+ :invar-property 0))
+
+(define-fun .init () Bool (!
+ (let (($v (and (forall ((N node)) (not (__leader N))) (forall ((N1 node) (N2 node)) (not (__pending N1 N2))))
+ ))
+ (and $v))
+ :init true))
+
+(define-fun .axiom () Bool (!
+ (let (($v (and (forall ((X node)) (le X X)) (forall ((X node) (Y node) (Z node)) (=> (and (le X Y) (le Y Z)) (le X Z))) (forall ((X node) (Y node)) (=> (and (le X Y) (le Y X)) (= X Y))) (forall ((X node) (Y node)) (or (le X Y) (le Y X))) (forall ((W node) (X node) (Y node) (Z node)) (=> (and (btw W X Y) (btw W Y Z)) (btw W X Z))) (forall ((W node) (X node) (Y node)) (=> (btw W X Y) (not (btw W Y X)))) (forall ((W node) (X node) (Y node)) (or (btw W X Y) (btw W Y X) (= W X) (= W Y) (= X Y))) (forall ((X node) (Y node) (Z node)) (=> (btw X Y Z) (btw Y Z X))))
+ ))
+ (and $v))
+ :axiom true))
+
+(define-fun .action_send () Bool (!
+    (let (($v (exists ((n node) (next node)) (and (and (forall ((Z node)) (and (not (= n next)) (=> (and (not (= Z n)) (not (= Z next))) (btw n next Z)))) (forall ((N1 node) (N2 node)) (= (pending N1 N2) (or (__pending N1 N2) (and (= N1 n) (= N2 next)))))) (forall ((x0 node)) (= (leader x0) (__leader x0)))))
+    ))
+    (and $v))
+    :action send))
+
+(define-fun .action_recv () Bool (!
+    (let (($v (exists ((sender node) (n node) (next node)) (and (forall ((Z node)) (and (not (= n next)) (=> (and (not (= Z n)) (not (= Z next))) (btw n next Z)))) (__pending sender n) (=> (= sender n) (and (forall ((N node)) (= (leader N) (or (__leader N) (= N n)))) (forall ((N1 node) (N2 node)) (=> (not (and (= N1 sender) (= N2 n))) (= (pending N1 N2) (__pending N1 N2)))))) (=> (not (= sender n)) (and (forall ((N node)) (= (leader N) (__leader N))) (=> (le n sender) (forall ((N1 node) (N2 node)) (=> (not (and (= N1 sender) (= N2 n))) (= (pending N1 N2) (or (__pending N1 N2) (and (= N1 sender) (= N2 next))))))) (=> (not (le n sender)) (forall ((N1 node) (N2 node)) (=> (not (and (= N1 sender) (= N2 n))) (= (pending N1 N2) (__pending N1 N2)))))))))
+    ))
+    (and $v))
+    :action recv))

@@ -1,0 +1,168 @@
+:comment	SOURCE: B. Berard, L. Fribourg. REACHABILITY ANALYSIS OF (TIMED) PETRI NETS USING REAL ARITHMETIC 
+:comment 	A Petri Net's example: "A Swimming-pool" 
+:comment 	made by Elisabetta Vigolo
+
+ 
+:index nat
+
+
+:comment ---------- FUNCTIONS and PREDICATES -----------
+
+
+
+:comment  x1
+:global a int
+
+:comment  x2
+:global b int
+
+:comment  x3
+:global c int
+
+:comment  x4
+:global d int
+
+:comment  x5
+:global e int
+
+:comment  x6
+:global f int
+
+:comment  x7
+:global g int
+
+:smt (define h::int)
+
+:smt (define i::int)
+
+
+
+:comment ----------------------axioms--------------------------
+
+:system_axiom
+:var x
+:cnj (and  (>  h  1)   (>  i  1) )
+
+:system_axiom
+:var x
+:cnj (and (>= a[x] 0)  (>= b[x] 0)  (>= c[x] 0) (>= d[x] 0) (>= e[x] 0)  (>= f[x] 0) (>= g[x] 0)   )
+
+
+:comment ----------------------axioms--------------------------
+
+:initial
+:var x
+:cnj (=  a[x]  0) (=  b[x]  0) (=  c[x]  0) (=  d[x]  0) (=  e[x]  0) (=  f[x]  h) (=  g[x]  i) 
+
+
+:u_cnj (=  a[z1]  0) (=  b[z1]  0) (=  d[z1]  0) (=  e[z1]  0) (=  f[z1]  0) 
+
+:u_cnj (=  b[z1]  0) (=  d[z1]  0) (=  e[z1]  0) (=  f[z1]  0) (=  g[z1]  0) 
+
+
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (>=  f[x]  1) 
+:numcases 1
+:case 
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  e[x]
+ :val (+  f[x]  -1)
+ :val  g[x]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (>=  a[x]  1) (>=  g[x]  1) 
+:numcases 1
+:case 
+ :val (+  a[x]  -1)
+ :val (+  b[x]  1)
+ :val  c[x]
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+ :val (+  g[x]  -1)
+
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (>=  b[x]  1) 
+:numcases 1
+:case 
+ :val  a[x]
+ :val (+  b[x]  -1)
+ :val (+  c[x]  1)
+ :val  d[x]
+ :val  e[x]
+ :val (+  f[x]  1)
+ :val  g[x]
+
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (>=  c[x]  1) (>=  f[x]  1) 
+:numcases 1
+:case
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  -1)
+ :val (+  d[x]  1)
+ :val  e[x]
+ :val (+  f[x]  -1)
+ :val  g[x]
+
+
+
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (>=  d[x]  1) 
+:numcases 1
+:case
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  -1)
+ :val (+  e[x]  1)
+ :val  f[x]
+ :val (+  g[x]  1)
+
+
+
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (>=  e[x]  1) 
+:numcases 1
+:case
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val (+  e[x]  -1)
+ :val (+  f[x]  1)
+ :val  g[x]
+

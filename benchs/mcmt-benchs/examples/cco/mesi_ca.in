@@ -1,0 +1,66 @@
+
+:comment SOURCE:      Abdulla et al., TACAS 2007
+:comment counting abstraction version
+
+:global e int
+:global i int
+:global m int
+:global s int
+
+:initial 
+:var x
+:cnj (= s 0) (= m 0)  (= e 0)  
+
+:system_axiom
+:var x
+:cnj (and (>= e 0) (>= i 0) (>= m 0) (>= s 0) )  
+
+ 
+:unsafe 
+:var x 
+:cnj (> m 1)  
+ 
+:comment t1 
+:transition
+:var j 
+:guard (> e 0)  
+:numcases 1
+:case 
+ :val (+ e -1)
+ :val i  
+ :val (+ m 1) 
+ :val s   
+
+:comment t2 
+:transition
+:var j 
+:guard (> i 0)  
+:numcases 1
+:case 
+ :val 0 
+ :val (+ i -1) 
+ :val 0
+ :val (+ (+ e (+ m s)) 1)   
+ 
+:comment t3 
+:transition
+:var j 
+:guard (> s 0)  
+:numcases 1
+:case 
+ :val 1 
+ :val (+ (+ (+ (+ s m) e) i) -1) 
+ :val 0
+ :val 0   
+
+:comment t4 
+:transition
+:var j 
+:guard (> i 0)  
+:numcases 1
+:case 
+ :val 1 
+ :val (+ (+ (+ (+ s m) e) i) -1) 
+ :val 0
+ :val 0   
+

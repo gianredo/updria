@@ -1,0 +1,110 @@
+:smt (define-type locations ( subrange 1 4))
+
+:index int
+
+:comment N
+:smt (define a::int)
+:comment l
+:local b locations
+:comment token
+:global c int
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:system_axiom
+:var x
+:cnj  (>  a  1) 
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:initial
+:var x
+:cnj (=  c[x]  1) (=  b[x]  1) 
+
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  b[z1]  3) (=  b[z2]  3) (>= z1  1) (>= z2  1) (<= z1  a) (<= z2  a) 
+
+
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) (>= x  1) (<= x  a) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val c[j]
+:case 
+ :val b[j]
+ :val c[j]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (=  b[x]  2) (= x  c[x]) (>= x  1) (<= x  a) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val c[j]
+:case 
+ :val b[j]
+ :val c[j]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (=  b[x]  3) (>= x  1) (<= x  a) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val c[j]
+:case 
+ :val b[j]
+ :val c[j]
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) (= x  c[x]) (>= x  1) (< x  a) 
+:numcases 2
+:case (= x j)
+ :val b[j]
+ :val (+  c[x]  1)
+:case 
+ :val b[j]
+ :val (+  c[x]  1)
+
+
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) (= x  a) (= x  c[x]) 
+:numcases 2
+:case (= x j)
+ :val b[j]
+ :val  1
+:case 
+ :val b[j]
+ :val  1

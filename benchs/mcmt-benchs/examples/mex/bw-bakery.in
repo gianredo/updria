@@ -1,0 +1,308 @@
+:comment -----------------------------------------------------------------------------------
+:comment "BLACK AND WHITE BAKERY ALGORITHM"
+:comment -----------------------------------------------------------------------------------
+:comment Author: Daniele Filaretti (dfilaretti@gmail.com)
+:comment Source: "The Black-White Bakery algorithm" - G.Taubenfeld
+:comment -----------------------------------------------------------------------------------
+
+:smt (define-type locations (subrange 1 4))
+
+:smt (define-type colors (subrange 0 1))
+:comment 0 = WHITE
+:comment 1 = BLACK
+
+:local a locations
+
+:local u int
+:local q int
+
+:local t int
+:local c colors
+
+:global	k colors
+:global w int
+:global	b int
+
+:initial 
+:var x
+:cnj (= a[x] 1) (= u[x] 0) (= q[x] 0) (= t[x] 0) (= c[x] 0) (= k[x] 0) (= w[x] 1) (= b[x] 1) 
+
+:system_axiom
+:var x
+:cnj (and (>= b 0) (>= w 0))
+
+
+ 
+:unsafe 
+:var x 
+:var y
+:cnj (= a[x] 4) (= a[y] 4)  
+
+:comment -----------------------------------------------------------------------------------
+:comment * new ticket WHITE *
+:comment -----------------------------------------------------------------------------------
+
+:transition
+:var x
+:var j
+:guard   true (= x x) 
+:numcases 2
+:case (= x j)
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val (+ w[j] 1)
+ 	:val b[j]
+:case  
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val (+ w[j] 1)
+ 	:val b[j]
+ 
+:comment -----------------------------------------------------------------------------------
+:comment * new ticket BLACK *
+:comment ----------------------------------------------------------------------------------- 
+ 
+:transition
+:var x
+:var j
+:guard (= x x) 
+:numcases 2
+:case (= x j)
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val (+ b[j] 1)
+:case  
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val (+ b[j] 1)
+ 
+ 
+  
+ 
+
+:comment -----------------------------------------------------------------------------------
+:comment * "Choosing" WHITE *
+:comment -----------------------------------------------------------------------------------
+
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= k[x] 0)
+:uguard (not (= c[j] 0))
+:uguard (< t[j] w[j])
+:numcases 2
+:case (= x j)
+	:val 2
+
+ 	:val w[j]
+ 	:val k[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val b[j]
+:case  
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val b[j]
+ 	
+ 	
+:comment -----------------------------------------------------------------------------------
+:comment * "Choosing" BLACK *
+:comment -----------------------------------------------------------------------------------
+
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= k[x] 1)
+:uguard (not (= c[j] 1))
+:uguard (< t[j] b[j])
+:numcases 2
+:case (= x j)
+	:val 2
+
+ 	:val b[j]
+ 	:val k[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val b[j]
+:case  
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val b[j]
+
+
+:comment -----------------------------------------------------------------------------------
+:comment * Take coloured ticket *
+:comment -----------------------------------------------------------------------------------
+
+:transition
+:var x
+:var j
+:guard (= a[x] 2)
+:numcases 2
+:case (= x j)
+	:val 3
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val u[j]
+ 	:val q[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val b[j]
+:case  
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val b[j]
+
+:comment -----------------------------------------------------------------------------------
+:comment * Enter critical section! *
+:comment -----------------------------------------------------------------------------------
+
+:transition
+:var x
+:var j
+:guard (= a[x] 3) 
+
+:uguard (not (= a[j] 2)) (= c[j] c[x]) (= t[j] 0) 
+:uguard (not (= a[j] 2)) (= c[j] c[x]) (> t[j] t[x])  
+:uguard (not (= a[j] 2)) (= c[j] c[x]) (= t[j] t[x]) (> j x)
+:uguard (not (= a[j] 2)) (= c[j] c[x]) (not (= c[x] c[j]))
+
+:uguard (not (= a[j] 2)) (not (= c[j] c[x])) (= t[j] 0) 
+:uguard (not (= a[j] 2)) (not (= c[j] c[x])) (not (= c[x] k[j]))
+:uguard (not (= a[j] 2)) (not (= c[j] c[x])) (= c[x] c[j])
+
+
+:numcases 2
+:case (= x j)
+	:val 4
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val b[j]
+:case  
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:val k[j]
+ 	:val w[j]
+ 	:val b[j]
+
+
+
+
+:comment -----------------------------------------------------------------------------------
+:comment * Exit critical section *
+:comment -----------------------------------------------------------------------------------
+
+:transition
+:var x
+:var j
+:guard (= a[x] 4)
+:numcases 2
+:case (= x j) 
+	:val 1
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val 0
+ 	:val c[j]
+ 	
+ 	:comment change global color
+ 	:comment val (- 1 c[j])
+        :val (+  1 (* -1 c[j]))
+ 	
+ 	:val w[j]
+ 	:val b[j]
+:case  
+	:val a[j]
+
+ 	:val u[j]
+ 	:val q[j]
+
+ 	:val t[j]
+ 	:val c[j]
+ 	
+ 	:comment val (- 1 c[j])
+        :val (+  1 (* -1 c[j]))
+ 	:val w[j]
+ 	:val b[j]
+
+:comment :accelerate_all_transitions_you_can
+

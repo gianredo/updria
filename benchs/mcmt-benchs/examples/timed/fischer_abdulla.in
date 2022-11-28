@@ -1,0 +1,325 @@
+
+
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+
+:comment Fischer's mututal exclusion protocol (parameteric)
+:comment ---------------------------------------------------
+
+:comment Taken from P. Abdulla and B. Jonsson's paper "Model Checking of
+:comment Systems with Many Identical Timed Processes".  Theoretical Computer
+:comment Science, 290(1):241-264, 2003.
+
+:comment The goal of the protocol is to guarantee mutual exclusion in
+:comment a timed network composed of a controller (a simple finite
+:comment state automaton) and a given number of identical timed
+:comment processes.  The controller handles a global variable and each
+:comment timed process has a local clock and a local state.  The
+:comment passing of time updates the clock variable and each timed
+:comment process can reset it or leave it unchanged.
+
+:comment The local state variable of a timed process can take four
+:comment values: A, B, C, and CS.  The initial state is A while CS
+:comment corresponds to the critical section.  The timed process also
+:comment can read and update a global variable whose value is either 0
+:comment or the index (a strictly positive natural number) of one of
+:comment the processes.  A timed process identified by the index i
+:comment behaves as follows:
+:comment  A--T--=0---{x}-->B
+:comment   process i goes from state A to state B, resetting its clock x and
+:comment   putting the value 0 in the global variable 
+:comment  B--x<1---=i---{x}-->C 
+:comment   process i goes from state B to state C, if its clock value is
+:comment   less than one time unit, resetting its clock x and putting the 
+:comment   value i in the global variable 
+:comment  C--x>1---=i--{}-->CS
+:comment   process i goes from state C to state CS, if its clock value is
+:comment   greater than one time unit, leaving  its clock x unchanged and 
+:comment   putting the value i in the global variable 
+:comment  C--T---!=i--{}-->A
+:comment   process i goes from state C to state A, leaving  its clock x 
+:comment   unchanged if the value of the global variable is different from i
+:comment  CS--T---=0--{}-->A
+:comment   process i goes from state CS to state A, leaving  its clock x 
+:comment   unchanged if the value of the global value is 0
+
+:comment In order to recast this specification in the formalism of the
+:comment paper by Abdulla and Jonsson, the controller state is assumed
+:comment to be either `udf,' indicating that the value of the shared
+:comment variable is undefined (i.e. equal to 0) or `df,' indicating
+:comment that the value of the shared is defined (i.e. not equal to
+:comment 0).  The set of process states is {A,B,C,CS,A+,B+,C+,CS+}
+:comment where the states with + correspond to configurations where
+:comment the value of the shared variable is equal to the index of
+:comment that particular process.
+
+:comment Formally, the transitions of the Fischer's protocol are the
+:comment following:
+
+:comment "initiate": ((udf,udf),(A,x>=0-->reset,B))
+:comment "choose1":  ((udf,df), (B,x<1-->reset,C+))
+:comment "choose2":  ((df,df),  (B,x<1-->reset,C+),(q+,skip,q)) 
+:comment              where q\in {A,B,C,CS}
+:comment "choose3":  ((df,df),  (B,x<1-->reset,C+))
+:comment "enter":    ((df,df),  (C+,x>1-->skip,CS+))
+:comment "fail1":    ((udf,udf),(C,0<=x-->skip,A))
+:comment "fail2":    ((df,df),  (C,0<=x-->skip,A))
+:comment "exit1":    ((df,udf), (CS+,0<=x-->skip,A))
+:comment "exit2":    ((df,udf), (CS,0<=x-->skip,A),(q+,skip,q))
+:comment              where q\in {A,B,C,CS}
+:comment "exit3":    ((udf,udf),(CS,0<=x-->skip,A))
+
+
+
+:comment The set of indexes is a sub-set of the natural numbers, where
+:comment 0 is a special value.  
+
+
+
+
+:comment The controller state is either `udf' or `df' that we 
+:comment encode as 1 and 2, respecively.
+
+:smt (define-type c_state ( subrange 1 2))
+
+:comment The existentially quantified variable tick is for
+:comment representing the passing of time
+
+
+:eevar a real
+
+:comment The variable c represents the state variable of the controller.
+
+
+:global b c_state
+
+:comment The variable q represents the state variable of the timed
+:comment networks.  
+:comment We take the range of q to be the natural number so that we
+ :comment compactly represent the transitions choose_2 and exit_2 (see
+:comment below).  However, the range of q is the finite sub-set {1,
+:comment ..., 8} where 1 represents A, 2 represents B, 3 represents C,
+:comment 4 represents CS, 5 represents A+, 6 represents B+, 7 :comment
+:comment represents C+, and 8 represents CS+. As a consequence, we use
+:comment a system_axiom (see below) to constrain the range of q to
+:comment fall in the range [1,8].  Using this encoding allows us to 
+:comment say that q+ can be encoded as n+4 when n is represented by q.
+
+
+:local c int
+
+:comment The variable t represents the clock variables of the
+:comment processes in the timed networks.
+
+
+:local d real
+
+:comment The range of q must be the interval [1,8].
+
+:system_axiom
+:var x
+:cnj (and  (<=  1  c[x])   (<=  c[x]  8) )
+
+:comment At the beginning, the value of the shared variable is `udf,'
+:comment that of q is A, and that of t is 0.
+
+:initial
+:var x
+:cnj (=  b[x]  1) (=  c[x]  1) (=  d[x]  0) 
+
+:comment The negation of the mutual exclusion property is given by the
+:comment set of states containing at least two processes whose state
+:comment variable q is either CS or CS+.
+
+:comment The value of state variable q of the two processes is CS.
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  c[z1]  4) (=  c[z2]  4) 
+
+
+:comment The value of state variable q of the two processes is CS+ or one CS and one CS^+ 
+
+:u_cnj (=  c[z1]  8) (=  c[z2]  8) 
+:u_cnj (=  c[z1]  4) (=  c[z2]  8) 
+
+:comment "initiate"
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) (=  c[x]  1) (>=  d[x]  0) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val  2
+ :val  0
+:case 
+ :val  1
+ :val c[j]
+ :val d[j]
+
+
+
+:comment "choose_1"
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) (=  c[x]  2) (<  d[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val  7
+ :val  0
+:case 
+ :val  2
+ :val c[j]
+ :val d[j]
+
+
+
+:comment "choose_2"
+:transition
+:var x
+:var y
+:var j
+:guard (=  b[x]  2) (=  c[x]  2) (<  d[x]  1) (<=  5  c[y]) (<=  c[y]  8) (<=  0  d[y]) 
+:numcases 3
+:case (= x j)
+ :val  2
+ :val  7
+ :val  0
+:case (= y j) (not(= x j))
+ :val  2
+ :val (+  c[j] -4)
+ :val d[j]
+:case (not(= x j)) (not (= y j) ) 
+ :val  2
+ :val  c[j]
+ :val d[j]
+
+
+
+:comment "choose_3"
+:transition
+:var x
+:var j
+:guard (=  b[x]  2) (=  c[x]  6) (<  d[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val  7
+ :val  0
+:case 
+ :val  2
+ :val c[j]
+ :val d[j]
+
+
+
+:comment "enter"
+:transition
+:var x
+:var j
+:guard (=  b[x]  2) (=  c[x]  7) (>  d[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val  8
+ :val d[j]
+:case 
+ :val  2
+ :val c[j]
+ :val d[j]
+
+
+
+:comment "fail_1 & fail_2"
+:transition
+:var x
+:var j
+:guard (=  c[x]  3) (<=  0  d[x]) 
+:numcases 2
+:case (= x j)
+ :val b[j]
+ :val  1
+ :val d[j]
+:case 
+ :val b[j]
+ :val c[j]
+ :val d[j]
+
+
+
+:comment "exit_1"
+:transition
+:var x
+:var j
+:guard (=  b[x]  2) (=  c[x]  8) (<=  0  d[x]) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val  1
+ :val d[j]
+:case 
+ :val  1
+ :val c[j]
+ :val d[j]
+
+
+
+:comment "exit_2"
+:transition
+:var x
+:var y
+:var j
+:guard (=  b[x]  2) (=  c[x]  4) (<=  0  d[x]) (<=  5  c[y]) (<=  c[y]  8) (<=  0  d[y]) 
+:numcases 3
+:case (= x j)
+ :val  1
+ :val  1
+ :val d[j]
+:case (= y j) (not(= x j))
+ :val  1
+ :val (+  c[j] -4)
+ :val d[j]
+:case (not(= x j)) (not (= y j) ) 
+ :val  1
+ :val  c[j]
+ :val d[j]
+
+
+
+:comment "exit_3"
+:transition
+:var x
+:var j
+:guard (=  b[x]  1) (=  c[x]  4) (<=  0  d[x]) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val  1
+ :val d[j]
+:case 
+ :val  1
+ :val c[j]
+ :val d[j]
+
+
+
+:comment "TimePassing"
+:transition
+:var x
+:var j
+:guard (<=  0  a) (= x x)
+:numcases 2
+:case (= x j)
+ :val b[j]
+ :val c[j]
+ :val (+  d[j]  a)
+:case 
+ :val b[j]
+ :val c[j]
+ :val (+  d[j]  a)

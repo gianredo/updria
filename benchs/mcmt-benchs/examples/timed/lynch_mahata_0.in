@@ -1,0 +1,301 @@
+
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+
+:comment Lynch-Shavit's mutual exclusion protocol
+:comment Taken from Mahata-"Model Checking Parametrized Timed Systems". PhD thesis,
+:comment Department of Information Technology, Uppsala University, Uppsala, 2005.
+:comment See also Lynch,Shavit-"Timing-based mutual exclusion". In Proc. of IEEE
+:comment Real-Time Systems Symposium, pages 2-11, 1992.
+
+:comment A simplified version of the Lynch-Shavit algorithm as it is in Mahata's
+:comment PhD thesis
+
+:smt (define-type Location (subrange 1 9))
+
+:comment location counter
+:local a Location
+:comment clock measuring the elapsed time
+:local c real
+:comment v contains the index of the process that wants to enter the critical section
+:global v int
+:comment w is a flag signaling that a process has written variable v
+:global w bool
+
+
+:eevar d real
+
+:initial
+:var x
+:cnj (= a[x] 1) (= c[x] 0) (= v[x] -1) (= w[x] false)
+
+:comment Two processes are at the same time in critical section (7)
+:unsafe
+:var x
+:var y
+:cnj (= a[x] 7) (= a[y] 7)
+
+:comment t1
+:comment FROM A'(1)
+:comment TO B'(2)
+:comment GUARD v==-1
+:comment UPDATES c=0
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= v[x] -1)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val 0
+ :val v[j]
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val w[j]
+
+:comment t2
+:comment FROM B'(2)
+:comment TO C'(3)
+:comment GUARD c<=1
+:comment UPDATES v=x, c=0
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (<= c[x] 1)
+:numcases 2
+:case (= x j)
+ :val 3
+ :val 0
+ :val x
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val x
+ :val w[j]
+
+:comment t3
+:comment FROM C'(3)
+:comment TO A(4)
+:comment GUARD v==x && c>1
+:transition
+:var x
+:var j
+:guard (= a[x] 3) (= v[x] x)
+:numcases 2
+:case (= x j)
+ :val 4
+ :val c[j]
+ :val v[j]
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val w[j]
+
+:comment t4
+:comment FROM C'(3)
+:comment TO A'(1)
+:comment GUARD v!=x
+:transition
+:var x
+:var j
+:guard (= a[x] 3) (not (= v[x] x))
+:numcases 2
+:case (= x j)
+ :val 1
+ :val c[j]
+ :val v[j]
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val w[j]
+ 
+:comment t5
+:comment FROM A(4)
+:comment TO B(5)
+:comment GUARD !w
+:comment UPDATES c=0
+:transition
+:var x
+:var j
+:guard (= a[x] 4) (not w[x])
+:numcases 2
+:case (= x j)
+ :val 5
+ :val 0
+ :val v[j]
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val w[j]
+ 
+:comment t6
+:comment FROM B(5)
+:comment TO C(6)
+:comment GUARD c<=1
+:comment UPDATES w=true, c=0
+:transition
+:var x
+:var j
+:guard (= a[x] 5) (<= c[x] 1)
+:numcases 2
+:case (= x j)
+ :val 6
+ :val 0
+ :val v[j]
+ :val true
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val true
+ 
+:comment t7
+:comment FROM C(6)
+:comment TO CS(7)
+:comment GUARD v==x
+:transition
+:var x
+:var j
+:guard (= a[x] 6) (= v[x] x)
+:numcases 2
+:case (= x j)
+ :val 7
+ :val c[j]
+ :val v[j]
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val w[j]
+ 
+:comment t8
+:comment FROM C(6)
+:comment TO A'(1)
+:comment GUARD v!=x
+:transition
+:var x
+:var j
+:guard (= a[x] 6) (not (= v[x] x))
+:numcases 2
+:case (= x j)
+ :val 1
+ :val c[j]
+ :val v[j]
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val w[j]
+
+:comment t9
+:comment FROM CS(7)
+:comment TO W(8)
+:comment UPDATES c=0
+:transition
+:var x
+:var j
+:guard (= a[x] 7)
+:numcases 2
+:case (= x j)
+ :val 8
+ :val 0
+ :val v[j]
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val w[j]
+
+:comment t10
+:comment FROM W(8)
+:comment TO X(9)
+:comment GUARD c<=1
+:comment UPDATES w=false, c=0
+:transition
+:var x
+:var j
+:guard (= a[x] 8) (<= c[x] 1)
+:numcases 2
+:case (= x j)
+ :val 9
+ :val 0
+ :val v[j]
+ :val false
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val false
+ 
+:comment t11
+:comment FROM X(9)
+:comment TO A'(1)
+:comment GUARD c<=1
+:comment UPDATES v=-1
+:transition
+:var x
+:var j
+:guard (= a[x] 9) (<= c[x] 1)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val c[j]
+ :val -1
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val -1
+ :val w[j]
+ 
+:comment t12
+:comment FROM A(4)
+:comment TO A'(1)
+:comment GUARD w
+:transition
+:var x
+:var j
+:guard (= a[x] 4) (= w[x] true)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val c[j]
+ :val v[j]
+ :val w[j]
+:case
+ :val a[j]
+ :val c[j]
+ :val v[j]
+ :val w[j]
+ 
+:comment REMARK ABOUT DELAY TRANSITIONS
+:comment Delays transitions require an existential quantified time variable (see eevar declaration)
+:comment but no existentially quantified index variable. 
+
+:comment t13
+:comment delay
+:transition
+:var j
+:guard (> d 0) 
+:numcases 1
+:case
+ :val a[j]
+ :val (+ c[j] d)
+ :val v[j]
+ :val w[j]
+

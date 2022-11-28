@@ -1,0 +1,183 @@
+
+
+:comment See the paper A. Carioni, S. Ghilardi, and S. Ranise. MCMT in the Land of Parametrized Timed Automata. In Proc. of VERIFY 10, 2010.
+
+
+
+:comment Fischer's mututal exclusion protocol (UPPAAL version)
+:comment Taken from Behrmann,David,Larsen-"A Tutorial on Uppaal",
+:comment available at http://www.uppaal.com/
+
+:comment This version of the protocol is a slight variation of the more common
+:comment version (see file fischer_sal.in). There is only delay (k), so the
+:comment mutual exclusion is ensured by compelling the transition to the critical
+:comment section (cs) to happen after a time greater than k; whereas the writing
+:comment of the shared variable id (f) happens within a time smaller than k.
+
+:comment time delay enforcing mutual exclusion
+:smt (define k::real)
+:smt (define-type Location (subrange 1 4))
+
+
+:comment {1=idle, 2=req, 3=wait, 4=cs}
+:local d Location
+:comment f is the shared variable for pid
+:comment since (according to MCMT semantics) 0 can be a pid but -1 cannot, we use -1 for 
+:comment the value of 'no-process'
+:global f int
+:comment local clock
+:local g real
+
+
+:comment time elapsing existentially quantified variable
+:eevar c real
+
+:initial
+:var x
+:cnj  (=  f[x]  -1) (=  d[x]  1)
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  d[z1]  4) (=  d[z2]  4) 
+
+:comment t1
+:comment FROM idle(1)
+:comment TO req(2) INV g <= k
+:comment GUARD f == -1
+:comment UPDATES g = 0
+:transition
+:var x
+:var j
+:guard (=  d[x]  1) (=  f[x]  -1)
+:numcases 2
+:case (= x j)
+ :val  2
+ :val f[j]
+ :val 0
+:case 
+ :val d[j]
+ :val f[j]
+ :val g[j]
+
+:comment t2
+:comment FROM req(2) INV g <= k
+:comment TO wait(3)
+:comment GUARD g <= k
+:comment UPDATES g = 0, f = x
+:transition
+:var x
+:var j
+:guard (=  d[x]  2) (<= g[x]  k) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val x
+ :val 0
+:case 
+ :val d[j]
+ :val x
+ :val g[j]
+
+:comment t3
+:comment FROM wait(3)
+:comment TO req(2) INV g <= k
+:comment GUARD f == -1
+:comment UPDATES g = 0
+:transition
+:var x
+:var j
+:guard (=  d[x]  3)  (= f[x] -1)  
+:numcases 2
+:case (= x j)
+ :val 2
+ :val f[j]
+ :val 0
+:case 
+ :val d[j]
+ :val f[j]
+ :val g[j]
+
+:comment t4
+:comment FROM wait(3)
+:comment TO cs(4)
+:comment GUARD g > k && f == x
+:transition
+:var x
+:var j
+:guard (=  d[x]  3) (>  g[x]  k) (=  f[x] x) 
+:numcases 2
+:case (= x j)
+ :val  4
+ :val f[j]
+ :val g[j]
+:case 
+ :val d[j]
+ :val f[j]
+ :val g[j]
+
+:comment t5
+:comment FROM cs(4)
+:comment TO idle(1)
+:comment UPDATES f = -1
+:transition
+:var x
+:var j
+:guard (=  d[x]  4) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val  -1
+ :val g[j]
+:case 
+ :val d[j]
+ :val  -1
+ :val g[j]
+
+:comment REMARK ABOUT DELAY TRANSITIONS
+:comment Delays transitions require an existential quantified time variable (see eevar declaration)
+:comment but no existentially quantified index variable. Since mcmt syntax requires instead
+:comment at least one existential quantified index variable, we must indicate it as x and
+:comment split consequently the delay transition into many cases according to the automaton's locations.
+
+:comment t6
+:comment Time elapsing
+:comment According to the semantics of networks of timed automata,
+:comment time elapsing should be consistent with location invariants
+:comment (invariant g<=k  in location 2).
+:comment Because of MCMT syntax, we must duplicate this transition with case-split 
+:comment 'd[x]=2' or 'not d[x] = 3'
+:transition
+:var x
+:var j
+:guard (>=  c  0) (= d[x] 2) (<= (+ g[x] c) k)
+:uguard (= d[j] 2) (<= (+ g[j] c) k)
+:uguard (not (= d[j] 2))
+:numcases 2
+:case (= x j)
+ :val d[j]
+ :val f[j]
+ :val (+ g[j] c)
+:case 
+ :val d[j]
+ :val f[j]
+ :val (+ g[j] c)
+
+:comment t7
+:comment Time elapsing
+:transition
+:var x
+:var j
+:guard (>=  c  0) (not (= d[x] 2)) 
+:uguard (= d[j] 2) (<= (+ g[j] c) k)
+:uguard (not (= d[j] 2))
+:numcases 2
+:case (= x j)
+ :val d[j]
+ :val f[j]
+ :val (+ g[j] c)
+:case 
+ :val d[j]
+ :val f[j]
+ :val (+ g[j] c)
+

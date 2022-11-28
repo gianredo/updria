@@ -1,0 +1,160 @@
+; VMT translation of cache.pyv (IC3PO flavored)
+(declare-sort address 0)
+(declare-sort value 0)
+(declare-sort core 0)
+
+(define-fun .address ((S address)) address (! S :sort 1))
+(define-fun .value ((S value)) value (! S :sort 1))
+(define-fun .core ((S core)) core (! S :sort 1))
+
+(declare-fun __modified (core address) Bool)
+(declare-fun __exclusive (core address) Bool)
+(declare-fun __shared (core address) Bool)
+(declare-fun __invalid (core address) Bool)
+(declare-fun __proc_read (core address) Bool)
+(declare-fun __proc_write (core address value) Bool)
+(declare-fun __bus_in_use () Bool)
+(declare-fun __bus_read (core address) Bool)
+(declare-fun __bus_read_for_ownership (core address) Bool)
+(declare-fun __bus_upgrade (core address) Bool)
+(declare-fun __bus_transfer (value) Bool)
+(declare-fun __memory (address) value)
+(declare-fun __cache (core address) value)
+
+(declare-fun modified (core address) Bool)
+(declare-fun exclusive (core address) Bool)
+(declare-fun shared (core address) Bool)
+(declare-fun invalid (core address) Bool)
+(declare-fun proc_read (core address) Bool)
+(declare-fun proc_write (core address value) Bool)
+(declare-fun bus_in_use () Bool)
+(declare-fun bus_read (core address) Bool)
+(declare-fun bus_read_for_ownership (core address) Bool)
+(declare-fun bus_upgrade (core address) Bool)
+(declare-fun bus_transfer (value) Bool)
+(declare-fun memory (address) value)
+(declare-fun cache (core address) value)
+
+(define-fun .modified ((V0 core) (V1 address)) Bool (! (__modified V0 V1) :next modified))
+(define-fun .exclusive ((V0 core) (V1 address)) Bool (! (__exclusive V0 V1) :next exclusive))
+(define-fun .shared ((V0 core) (V1 address)) Bool (! (__shared V0 V1) :next shared))
+(define-fun .invalid ((V0 core) (V1 address)) Bool (! (__invalid V0 V1) :next invalid))
+(define-fun .proc_read ((V0 core) (V1 address)) Bool (! (__proc_read V0 V1) :next proc_read))
+(define-fun .proc_write ((V0 core) (V1 address) (V2 value)) Bool (! (__proc_write V0 V1 V2) :next proc_write))
+(define-fun .bus_in_use () Bool (! __bus_in_use :next bus_in_use))
+(define-fun .bus_read ((V0 core) (V1 address)) Bool (! (__bus_read V0 V1) :next bus_read))
+(define-fun .bus_read_for_ownership ((V0 core) (V1 address)) Bool (! (__bus_read_for_ownership V0 V1) :next bus_read_for_ownership))
+(define-fun .bus_upgrade ((V0 core) (V1 address)) Bool (! (__bus_upgrade V0 V1) :next bus_upgrade))
+(define-fun .bus_transfer ((V0 value)) Bool (! (__bus_transfer V0) :next bus_transfer))
+(define-fun .memory ((V0 address)) value (! (__memory V0) :next memory))
+(define-fun .cache ((V0 core) (V1 address)) value (! (__cache V0 V1) :next cache))
+
+
+
+(define-fun .prop () Bool (!
+ (let (($v (forall ((C core) (A address)) (=> (and (not (__invalid C A)) (not (__modified C A))) (= (__cache C A) (__memory A))))
+ ))
+ (and $v))
+ :invar-property 0))
+
+(define-fun .init () Bool (!
+ (let (($v (and (forall ((C core) (A address)) (not (__modified C A))) (forall ((C core) (A address)) (not (__exclusive C A))) (forall ((C core) (A address)) (not (__shared C A))) (forall ((C core) (A address)) (__invalid C A)) (forall ((C core) (A address)) (not (__proc_read C A))) (forall ((C core) (A address) (V value)) (not (__proc_write C A V))) (not __bus_in_use) (forall ((C core) (A address)) (not (__bus_read C A))) (forall ((C core) (A address)) (not (__bus_read_for_ownership C A))) (forall ((C core) (A address)) (not (__bus_upgrade C A))) (forall ((V value)) (not (__bus_transfer V))))
+ ))
+ (and $v))
+ :init true))
+
+(define-fun .axiom () Bool (!
+ (let (($v true
+ ))
+ (and $v))
+ :axiom true))
+
+(define-fun .action_issue_proc_read_invalid () Bool (!
+    (let (($v (exists ((c core) (a address)) (and (and (__invalid c a) (not __bus_in_use) bus_in_use (forall ((C core) (A address)) (= (proc_read C A) (or (__proc_read C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (= (bus_read C A) (or (__bus_read C A) (and (not (= C c)) (= A a)))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address)) (= (invalid x0 x1) (__invalid x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action issue_proc_read_invalid))
+
+(define-fun .action_do_bus_read_invalid () Bool (!
+    (let (($v (exists ((c core) (a address)) (and (and (__bus_read c a) (__invalid c a) (forall ((C core) (A address)) (= (bus_read C A) (and (__bus_read C A) (not (and (= C c) (= A a))))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address)) (= (invalid x0 x1) (__invalid x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (= bus_in_use __bus_in_use) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action do_bus_read_invalid))
+
+(define-fun .action_do_bus_read_valid () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__bus_read c a) (not (__invalid c a)) (= (__cache c a) v) (forall ((C core) (A address)) (= (bus_read C A) (and (__bus_read C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (shared C A) (or (__shared C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (= (modified C A) (and (__modified C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (exclusive C A) (and (__exclusive C A) (not (and (= C c) (= A a)))))) (=> (__modified c a) (and (forall ((A address)) (=> (not (= A a)) (= (memory A) (__memory A)))) (= (memory a) v))) (=> (not (__modified c a)) (forall ((A address)) (= (memory A) (__memory A)))) (forall ((V value)) (= (bus_transfer V) (or (__bus_transfer V) (= V v))))) (forall ((x0 core) (x1 address)) (= (invalid x0 x1) (__invalid x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (= bus_in_use __bus_in_use) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action do_bus_read_valid))
+
+(define-fun .action_complete_proc_read_invalid_shared () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__invalid c a) (__proc_read c a) (__bus_transfer v) (forall ((C core) (A address)) (not (__bus_read C A))) (forall ((V value)) (not (bus_transfer V))) (forall ((C core) (A address)) (= (invalid C A) (and (__invalid C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (shared C A) (or (__shared C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (=> (not (and (= C c) (= A a))) (= (cache C A) (__cache C A)))) (= (cache c a) v) (not bus_in_use) (forall ((C core) (A address)) (= (proc_read C A) (and (__proc_read C A) (not (and (= C c) (= A a))))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 address)) (= (memory x0) (__memory x0)))))
+    ))
+    (and $v))
+    :action complete_proc_read_invalid_shared))
+
+(define-fun .action_complete_proc_read_invalid_exclusive () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__invalid c a) (__proc_read c a) (forall ((V value)) (not (__bus_transfer V))) (forall ((C core) (A address)) (not (__bus_read C A))) (= (__memory a) v) (forall ((C core) (A address)) (= (invalid C A) (and (__invalid C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (exclusive C A) (or (__exclusive C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (=> (not (and (= C c) (= A a))) (= (cache C A) (__cache C A)))) (= (cache c a) v) (not bus_in_use) (forall ((C core) (A address)) (= (proc_read C A) (and (__proc_read C A) (not (and (= C c) (= A a))))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0)))))
+    ))
+    (and $v))
+    :action complete_proc_read_invalid_exclusive))
+
+(define-fun .action_issue_proc_write_invalid () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__invalid c a) (not __bus_in_use) bus_in_use (forall ((C core) (A address) (V value)) (= (proc_write C A V) (or (__proc_write C A V) (and (= C c) (= A a) (= V v))))) (forall ((C core) (A address)) (= (bus_read_for_ownership C A) (or (__bus_read_for_ownership C A) (and (not (= C c)) (= A a)))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address)) (= (invalid x0 x1) (__invalid x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action issue_proc_write_invalid))
+
+(define-fun .action_do_bus_read_for_ownership_invalid () Bool (!
+    (let (($v (exists ((c core) (a address)) (and (and (__bus_read_for_ownership c a) (__invalid c a) (forall ((C core) (A address)) (= (bus_read_for_ownership C A) (and (__bus_read_for_ownership C A) (not (and (= C c) (= A a))))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address)) (= (invalid x0 x1) (__invalid x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (= bus_in_use __bus_in_use) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action do_bus_read_for_ownership_invalid))
+
+(define-fun .action_do_bus_read_for_ownership_valid () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__bus_read_for_ownership c a) (not (__invalid c a)) (= (__cache c a) v) (forall ((C core) (A address)) (= (bus_read_for_ownership C A) (and (__bus_read_for_ownership C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (invalid C A) (or (__invalid C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (= (shared C A) (and (__shared C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (modified C A) (and (__modified C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (exclusive C A) (and (__exclusive C A) (not (and (= C c) (= A a)))))) (=> (__modified c a) (and (forall ((A address)) (=> (not (= A a)) (= (memory A) (__memory A)))) (= (memory a) v))) (=> (not (__modified c a)) (forall ((A address)) (= (memory A) (__memory A)))) (forall ((V value)) (= (bus_transfer V) (or (__bus_transfer V) (= V v))))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (= bus_in_use __bus_in_use) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action do_bus_read_for_ownership_valid))
+
+(define-fun .action_complete_proc_write_invalid () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__invalid c a) (__proc_write c a v) (forall ((C core) (A address)) (not (__bus_read_for_ownership C A))) (forall ((V value)) (not (bus_transfer V))) (forall ((C core) (A address)) (= (invalid C A) (and (__invalid C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (modified C A) (or (__modified C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (=> (not (and (= C c) (= A a))) (= (cache C A) (__cache C A)))) (= (cache c a) v) (not bus_in_use) (forall ((C core) (A address) (V value)) (= (proc_write C A V) (and (__proc_write C A V) (not (and (= C c) (= A a) (= V v))))))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 address)) (= (memory x0) (__memory x0)))))
+    ))
+    (and $v))
+    :action complete_proc_write_invalid))
+
+(define-fun .action_proc_write_exclusive () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__exclusive c a) (not __bus_in_use) (forall ((C core) (A address)) (= (exclusive C A) (and (__exclusive C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (modified C A) (or (__modified C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (=> (not (and (= C c) (= A a))) (= (cache C A) (__cache C A)))) (= (cache c a) v)) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address)) (= (invalid x0 x1) (__invalid x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (= bus_in_use __bus_in_use) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0)))))
+    ))
+    (and $v))
+    :action proc_write_exclusive))
+
+(define-fun .action_issue_proc_write_shared () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__shared c a) (not __bus_in_use) bus_in_use (forall ((C core) (A address) (V value)) (= (proc_write C A V) (or (__proc_write C A V) (and (= C c) (= A a) (= V v))))) (forall ((C core) (A address)) (= (bus_upgrade C A) (or (__bus_upgrade C A) (and (not (= C c)) (= A a)))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address)) (= (invalid x0 x1) (__invalid x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action issue_proc_write_shared))
+
+(define-fun .action_do_bus_upgrade () Bool (!
+    (let (($v (exists ((c core) (a address)) (and (and (__bus_upgrade c a) (forall ((C core) (A address)) (= (bus_upgrade C A) (and (__bus_upgrade C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (invalid C A) (or (__invalid C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (= (shared C A) (and (__shared C A) (not (and (= C c) (= A a))))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (= bus_in_use __bus_in_use) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action do_bus_upgrade))
+
+(define-fun .action_complete_proc_write_shared () Bool (!
+    (let (($v (exists ((c core) (a address) (v value)) (and (and (__shared c a) (__proc_write c a v) (forall ((C core) (A address)) (not (__bus_upgrade C A))) (forall ((C core) (A address)) (= (shared C A) (and (__shared C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (modified C A) (or (__modified C A) (and (= C c) (= A a))))) (forall ((C core) (A address)) (=> (not (and (= C c) (= A a))) (= (cache C A) (__cache C A)))) (= (cache c a) v) (forall ((C core) (A address) (V value)) (= (proc_write C A V) (and (__proc_write C A V) (not (and (= C c) (= A a) (= V v)))))) (not bus_in_use)) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (invalid x0 x1) (__invalid x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0)))))
+    ))
+    (and $v))
+    :action complete_proc_write_shared))
+
+(define-fun .action_evict_modified () Bool (!
+    (let (($v (exists ((c core) (a address)) (and (and (not __bus_in_use) (__modified c a) (forall ((A address)) (=> (not (= A a)) (= (memory A) (__memory A)))) (= (memory a) (__cache c a)) (forall ((C core) (A address)) (= (modified C A) (and (__modified C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (invalid C A) (or (__invalid C A) (and (= C c) (= A a)))))) (forall ((x0 core) (x1 address)) (= (exclusive x0 x1) (__exclusive x0 x1))) (forall ((x0 core) (x1 address)) (= (shared x0 x1) (__shared x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (= bus_in_use __bus_in_use) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action evict_modified))
+
+(define-fun .action_evict_exclusive_or_shared () Bool (!
+    (let (($v (exists ((c core) (a address)) (and (and (not __bus_in_use) (or (__exclusive c a) (__shared c a)) (forall ((C core) (A address)) (= (exclusive C A) (and (__exclusive C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (shared C A) (and (__shared C A) (not (and (= C c) (= A a)))))) (forall ((C core) (A address)) (= (invalid C A) (or (__invalid C A) (and (= C c) (= A a)))))) (forall ((x0 core) (x1 address)) (= (modified x0 x1) (__modified x0 x1))) (forall ((x0 core) (x1 address)) (= (proc_read x0 x1) (__proc_read x0 x1))) (forall ((x0 core) (x1 address) (x2 value)) (= (proc_write x0 x1 x2) (__proc_write x0 x1 x2))) (= bus_in_use __bus_in_use) (forall ((x0 core) (x1 address)) (= (bus_read x0 x1) (__bus_read x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_read_for_ownership x0 x1) (__bus_read_for_ownership x0 x1))) (forall ((x0 core) (x1 address)) (= (bus_upgrade x0 x1) (__bus_upgrade x0 x1))) (forall ((x0 value)) (= (bus_transfer x0) (__bus_transfer x0))) (forall ((x0 address)) (= (memory x0) (__memory x0))) (forall ((x0 core) (x1 address)) (= (cache x0 x1) (__cache x0 x1)))))
+    ))
+    (and $v))
+    :action evict_exclusive_or_shared))

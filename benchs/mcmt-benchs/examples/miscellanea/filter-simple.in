@@ -1,0 +1,221 @@
+
+:comment SOURCE: from ARMC web page
+:comment     non linear problem; MCMT can solve it, but it is unable to simplify nonlinear formulae,
+:comment    hence quite unreadable invariants are sythetized! 
+
+
+
+:smt (define v::real )
+:smt (define w::real )
+:smt (define l::real )
+:smt (define m::real )
+:smt (define n::real )
+:smt (define o::real )
+:smt (define r::real )
+:smt (define s::real )
+
+:smt (define-type locations (subrange 1 10))
+
+:global a locations
+:global p real
+:global q real
+:global b real
+:global c real
+:global d real
+:global e real
+
+:system_axiom
+:var x
+:cnj (and (= v (/ -132705 100))  (= w (/  132705 100))  (= l c[x]) (= m (/ 9 10)) (= n (/ 5 10))  (= o (/ 7 10)) (= r (/ 4 10))  (= s (/ 15 10))  )
+
+:initial
+:var x
+:cnj (= a 1)
+
+:unsafe
+:var x
+:cnj (= a 10)
+
+:comment -1
+:transition
+:var j
+:guard (= a 1)
+:numcases 1
+:case 
+ :val 2
+ :val 0
+ :val 0
+ :val 0
+ :val 0
+ :val 0
+ :val 0
+
+:comment 0
+:transition
+:var j
+:guard (= a 2)
+:numcases 1
+:case 
+ :val 3
+ :val p
+ :val (+ (* l q) 5)
+ :val b
+ :val c
+ :val d
+ :val e
+
+:comment 1
+:transition
+:var j
+:guard (= a 3)
+:numcases 1
+:case 
+ :val 4
+ :val p
+ :val (+ (* m q  ) 35  )
+ :val b
+ :val c
+ :val d
+ :val e
+
+:comment 2
+:transition
+:var j
+:guard (= a 4)
+:numcases 1
+:case 
+ :val 5
+ :val q
+ :val q
+ :val q
+ :val c
+ :val q
+ :val e
+
+:comment 3
+:transition
+:var j
+:guard (= a 9)
+:numcases 1
+:case 
+ :val 5
+ :val (+ (+ (+ (+ (* n q  ) (* -1 (* b o  ))  ) (* c r  )  ) (* d s  )  ) (* -1 (* e o  ))  )
+ :val q
+ :val b
+ :val c
+ :val d
+ :val e
+
+:comment 4
+:transition
+:var j
+:guard (= a 5)
+:numcases 1
+:case 
+ :val 6
+ :val p
+ :val q
+ :val b
+ :val b
+ :val d
+ :val e
+
+:comment 5
+:transition
+:var j
+:guard (= a 6)
+:numcases 1
+:case 
+ :val 7
+ :val p
+ :val q
+ :val q
+ :val c
+ :val d
+ :val e
+
+:comment 6
+:transition
+:var j
+:guard (= a 7)
+:numcases 1
+:case 
+ :val 8
+ :val p
+ :val q
+ :val b
+ :val c
+ :val d
+ :val d
+
+:comment 7
+:transition
+:var j
+:guard (= a 8)
+:numcases 1
+:case 
+ :val 9
+ :val p
+ :val q
+ :val b
+ :val c
+ :val p
+ :val e
+
+:comment 8
+:transition
+:var j
+:guard (= a 9) (<= d v  ) 
+:numcases 1
+:case 
+ :val 10
+ :val p
+ :val q
+ :val b
+ :val c
+ :val d
+ :val e
+
+:comment 9
+:transition
+
+:var j
+:guard (= a 9) (>= d w  ) 
+:numcases 1
+:case 
+ :val 10
+ :val p
+ :val q
+ :val b
+ :val c
+ :val d
+ :val e
+
+:comment 10
+:transition
+:var j
+:guard (= a 9) (<= e v  ) 
+:numcases 1
+:case 
+ :val 10
+ :val p
+ :val q
+ :val b
+ :val c
+ :val d
+ :val e
+
+:comment 11
+:transition
+:var j
+:guard (= a 9) (>= e w  ) 
+:numcases 1
+:case 
+ :val 10
+ :val p
+ :val q
+ :val b
+ :val c
+ :val d
+ :val e
+

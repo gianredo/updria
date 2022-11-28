@@ -1,0 +1,269 @@
+
+
+:comment  use option -I or -c to avoid divergence
+
+:local a int
+
+:system_axiom
+:var x
+:cnj  (< x 14)
+
+:initial 
+:var x
+:cnj (and (= (= a[x] 0) (or (= x 0) (= x 1) (= x 2) (= x 3) (= x 4) (= x 8) (= x 9) (= x 10) (= x 11) (= x 12))) (= (= a[x] 1) (or (= x 5) (= x 6))) (= (>= a[x] 1) (= x 1)))
+
+:unsafe 
+:var x 
+:cnj (= x 9) (>= a[x] 2)
+
+:comment x0 >= 1 -> 
+:comment    x0' = x0-1 ,
+:comment    x1' = x1+1 ;
+
+:comment t1 
+:transition
+:var x
+:var j
+:guard (= x 0) (>= a[x] 1) 
+:numcases 2
+:case (= 0 j)    
+:val (+ a[j] -1)
+:case (= 1 j)    
+:val (+ a[j] 1)
+
+
+:comment x4 >= 1 , x9 >= 1 ->
+:comment    x0' = x0+1 ,
+:comment    x2' = x2+1 ,
+:comment    x4' = x4-1 ,
+:comment    x9' = x9-1 ;
+
+:comment t2 
+:transition
+:var x
+:var y
+:var j
+:guard (= x 4) (>= a[x] 1) (= y 9) (>= a[y] 1) 
+:numcases 4
+:case (= 0 j)    
+:val (+ a[j] 1)
+:case (= 2 j)    
+:val (+ a[j] 1)
+:case (= 4 j)    
+:val (+ a[j] -1)
+:case (= 9 j)    
+:val (+ a[j] -1)
+
+
+:comment x4 >= 1 , x6 >= 1 ->
+:comment    x0' = x0+1 ,
+:comment    x3' = x3+1 ,
+:comment    x4' = x4-1 ,
+:comment    x6' = x6-1 ;
+
+:comment t3 
+:transition
+:var x
+:var y
+:var j
+:guard (= x 4) (>= a[x] 1) (= y 6) (>= a[y] 1) 
+:numcases 4
+:case (= 0 j)    
+:val (+ a[j] 1)
+:case (= 3 j)    
+:val (+ a[j] 1)
+:case (= 4 j)    
+:val (+ a[j] -1)
+:case (= 6 j)    
+:val (+ a[j] -1)
+
+
+:comment x1 >= 1 , x3 >= 1 ->
+:comment    x1' = x1-1 ,
+:comment    x3' = x3-1 ,
+:comment    x5' = x5+1 ,
+:comment    x6' = x6+1 ;
+
+:comment t4
+:transition
+:var x
+:var y
+:var j
+:guard (= x 1) (>= a[x] 1) (= y 3) (>= a[y] 1) 
+:numcases 4
+:case (= 0 j)    
+:val (+ a[j] -1)
+:case (= 3 j)    
+:val (+ a[j] -1)
+:case (= 5 j)    
+:val (+ a[j] 1)
+:case (= 6 j)    
+:val (+ a[j] 1)
+
+
+
+:comment x1 >= 1 , x2 >= 1 ->
+:comment    x1' = x1-1 ,
+:comment    x2' = x2-1 ,
+:comment    x5' = x5+1 ,
+:comment    x9' = x9+1 ;
+
+:comment t5
+:transition
+:var x
+:var y
+:var j
+:guard (= x 1) (>= a[x] 1) (= y 2) (>= a[y] 1) 
+:numcases 4
+:case (= 1 j)    
+:val (+ a[j] -1)
+:case (= 2 j)    
+:val (+ a[j] -1)
+:case (= 5 j)    
+:val (+ a[j] 1)
+:case (= 9 j)    
+:val (+ a[j] 1)
+
+
+:comment x5 >= 1 ->
+:comment	x4' = x4+1 ,
+:comment       	x5' = x5-1 ;
+
+:comment t6
+:transition
+:var x
+:var j
+:guard (= x 5) (>= a[x] 1) 
+:numcases 2
+:case (= 4 j)    
+:val (+ a[j] 1)
+:case (= 5 j)    
+:val (+ a[j] -1)
+
+
+:comment x10 >= 1 ->
+:comment    x7' = x7+1 ,
+:comment    x10' = x10-1 ;
+
+:comment t7
+:transition
+:var x
+:var j
+:guard (= x 10) (>= a[x] 1) 
+:numcases 2
+:case (= 7 j)    
+:val (+ a[j] 1)
+:case (= 10 j)    
+:val (+ a[j] -1)
+
+
+:comment x7 >= 1 ->
+:comment    x7' = x7-1 ,
+:comment    x8' = x8+1 ;
+
+:comment t8
+:transition
+:var x
+:var j
+:guard (= x 7) (>= a[x] 1) 
+:numcases 2
+:case (= 7 j)    
+:val (+ a[j] -1)
+:case (= 8 j)    
+:val (+ a[j] 1)
+
+
+:comment x6 >= 1 , x8 >= 1 ->
+:comment    x6' = x6-1 ,
+:comment    x8' = x8-1 ,
+:comment    x9' = x9+1 ;
+
+:comment t9
+:transition
+:var x
+:comment var y
+:var j
+:guard (= x 6) (>= a[x] 1) (= x 8) (>= a[x] 1) 
+:numcases 3
+:case (= 6 j)    
+:val (+ a[j] -1)
+:case (= 8 j)    
+:val (+ a[j] -1)
+:case (= 9 j)    
+:val (+ a[j] 1)
+
+
+:comment x9 >= 1 ->
+:comment    x6' = x6+1 ,
+:comment    x9' = x9-1 ,
+:comment    x10' = x10+1 ;
+
+:comment t10
+:transition
+:var x
+:var j
+:guard (= x 9) (>= a[x] 1) 
+:numcases 3
+:case (= 6 j)    
+:val (+ a[j] 1)
+:case (= 9 j)    
+:val (+ a[j] -1)
+:case (= 10 j)    
+:val (+ a[j] 1)
+
+:comment x10 >= 1 ->
+:comment	x10' = x10-1 ,
+:comment	x12' = x12+1 ;
+
+:comment t11
+:transition
+:var x
+:var j
+:guard (= x 10) (>= a[x] 1) 
+:numcases 2
+:case (= 10 j)    
+:val (+ a[j] -1)
+:case (= 12 j)    
+:val (+ a[j] 1)
+
+
+:comment x11 >= 1 ->
+:comment    x8' = x8+1 ,
+:comment    x11' = x11-1 ,
+:comment    x13' = x13+1 ;
+
+:comment t12
+:transition
+:var x
+:var j
+:guard (= x 11) (>= a[x] 1) 
+:numcases 3
+:case (= 8 j)    
+:val (+ a[j] 1)
+:case (= 11 j)    
+:val (+ a[j] -1)
+:case (= 13 j)    
+:val (+ a[j] 1)
+
+
+:comment x12 >= 1 , x13 >= 1 ->
+:comment    x11' = x11+1 ,
+:comment    x12' = x12-1 ,
+:comment    x13' = x13-1 ;
+
+
+:comment t13
+:transition
+:var x
+:comment var y
+:var j
+:guard (= x 12) (>= a[x] 1) (= x 13) (>= a[x] 1) 
+:numcases 3
+:case (= 11 j)    
+:val (+ a[j] 1)
+:case (= 12 j)    
+:val (+ a[j] -1)
+:case (= 13 j)    
+:val (+ a[j] -1)
+
+

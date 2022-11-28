@@ -1,0 +1,90 @@
+; VMT translation of consensus_unsafe.pyv (IC3PO flavored)
+(declare-sort node 0)
+(declare-sort quorum 0)
+(declare-sort value 0)
+
+(define-fun .node ((S node)) node (! S :sort 2))
+(define-fun .quorum ((S quorum)) quorum (! S :sort 1))
+(define-fun .value ((S value)) value (! S :sort 1))
+
+(declare-fun __voting_quorum () quorum)
+(declare-fun __vote_request_msg (node node) Bool)
+(declare-fun __voted (node) Bool)
+(declare-fun __vote_msg (node node) Bool)
+(declare-fun __votes (node node) Bool)
+(declare-fun __leader (node) Bool)
+(declare-fun __decided (node value) Bool)
+
+(declare-fun voting_quorum () quorum)
+(declare-fun vote_request_msg (node node) Bool)
+(declare-fun voted (node) Bool)
+(declare-fun vote_msg (node node) Bool)
+(declare-fun votes (node node) Bool)
+(declare-fun leader (node) Bool)
+(declare-fun decided (node value) Bool)
+
+(define-fun .voting_quorum () quorum (! __voting_quorum :next voting_quorum))
+(define-fun .vote_request_msg ((V0 node) (V1 node)) Bool (! (__vote_request_msg V0 V1) :next vote_request_msg))
+(define-fun .voted ((V0 node)) Bool (! (__voted V0) :next voted))
+(define-fun .vote_msg ((V0 node) (V1 node)) Bool (! (__vote_msg V0 V1) :next vote_msg))
+(define-fun .votes ((V0 node) (V1 node)) Bool (! (__votes V0 V1) :next votes))
+(define-fun .leader ((V0 node)) Bool (! (__leader V0) :next leader))
+(define-fun .decided ((V0 node) (V1 value)) Bool (! (__decided V0 V1) :next decided))
+
+(declare-fun member (node quorum) Bool)
+
+(define-fun .member ((V0 node) (V1 quorum)) Bool (! (member V0 V1) :global true))
+
+(define-fun .prop () Bool (!
+ (let (($v (forall ((N1 node) (V1 value)) (not (__decided N1 V1)))
+ ))
+ (and $v))
+ :invar-property 0))
+
+(define-fun .init () Bool (!
+ (let (($v (and (forall ((N1 node) (N2 node)) (not (__vote_request_msg N1 N2))) (forall ((N node)) (not (__voted N))) (forall ((N1 node) (N2 node)) (not (__vote_msg N1 N2))) (forall ((N1 node) (N2 node)) (not (__votes N1 N2))) (forall ((N1 node)) (not (__leader N1))) (forall ((N node) (V value)) (not (__decided N V))))
+ ))
+ (and $v))
+ :init true))
+
+(define-fun .axiom () Bool (!
+ (let (($v (forall ((Q1 quorum) (Q2 quorum)) (exists ((N node)) (and (member N Q1) (member N Q2))))
+ ))
+ (and $v))
+ :axiom true))
+
+(define-fun .action_send_request_vote () Bool (!
+    (let (($v (exists ((src node) (dst node)) (and (forall ((N1 node) (N2 node)) (= (vote_request_msg N1 N2) (or (__vote_request_msg N1 N2) (and (= N1 src) (= N2 dst))))) (forall ((x0 node)) (= (voted x0) (__voted x0))) (forall ((x0 node) (x1 node)) (= (vote_msg x0 x1) (__vote_msg x0 x1))) (forall ((x0 node) (x1 node)) (= (votes x0 x1) (__votes x0 x1))) (forall ((x0 node)) (= (leader x0) (__leader x0))) (forall ((x0 node) (x1 value)) (= (decided x0 x1) (__decided x0 x1))) (= voting_quorum __voting_quorum)))
+    ))
+    (and $v))
+    :action send_request_vote))
+
+(define-fun .action_send_vote () Bool (!
+    (let (($v (exists ((src node) (dst node)) (and (forall ((N1 node) (N2 node) (N node)) (and (not (__voted src)) (__vote_request_msg dst src) (= (vote_msg N1 N2) (or (__vote_msg N1 N2) (and (= N1 src) (= N2 dst)))) (= (voted N) (or (__voted N) (= N src))) (=> (not (and (= N1 dst) (= N2 src))) (= (vote_request_msg N1 N2) (__vote_request_msg N1 N2))))) (forall ((x0 node) (x1 node)) (= (votes x0 x1) (__votes x0 x1))) (forall ((x0 node)) (= (leader x0) (__leader x0))) (forall ((x0 node) (x1 value)) (= (decided x0 x1) (__decided x0 x1))) (= voting_quorum __voting_quorum)))
+    ))
+    (and $v))
+    :action send_vote))
+
+(define-fun .action_recv_vote () Bool (!
+    (let (($v (exists ((n node) (sender node)) (and (forall ((N1 node) (N2 node)) (and (__vote_msg sender n) (= (votes N1 N2) (or (__votes N1 N2) (and (= N1 n) (= N2 sender)))))) (forall ((x0 node) (x1 node)) (= (vote_request_msg x0 x1) (__vote_request_msg x0 x1))) (forall ((x0 node)) (= (voted x0) (__voted x0))) (forall ((x0 node) (x1 node)) (= (vote_msg x0 x1) (__vote_msg x0 x1))) (forall ((x0 node)) (= (leader x0) (__leader x0))) (forall ((x0 node) (x1 value)) (= (decided x0 x1) (__decided x0 x1))) (= voting_quorum __voting_quorum)))
+    ))
+    (and $v))
+    :action recv_vote))
+
+(define-fun .action_choose_voting_quorum () Bool (!
+    (let (($v (exists ((q quorum) (sn node)) (and (and (forall ((N node)) (=> (member N q) (__votes sn N))) (= voting_quorum q)) (forall ((x0 node) (x1 node)) (= (vote_request_msg x0 x1) (__vote_request_msg x0 x1))) (forall ((x0 node)) (= (voted x0) (__voted x0))) (forall ((x0 node) (x1 node)) (= (vote_msg x0 x1) (__vote_msg x0 x1))) (forall ((x0 node) (x1 node)) (= (votes x0 x1) (__votes x0 x1))) (forall ((x0 node)) (= (leader x0) (__leader x0))) (forall ((x0 node) (x1 value)) (= (decided x0 x1) (__decided x0 x1)))))
+    ))
+    (and $v))
+    :action choose_voting_quorum))
+
+(define-fun .action_become_leader () Bool (!
+    (let (($v (exists ((n node)) (and (forall ((N node)) (and (=> (member N __voting_quorum) (__votes n N)) (= (leader N) (or (__leader N) (= N n))))) (forall ((x0 node) (x1 node)) (= (vote_request_msg x0 x1) (__vote_request_msg x0 x1))) (forall ((x0 node)) (= (voted x0) (__voted x0))) (forall ((x0 node) (x1 node)) (= (vote_msg x0 x1) (__vote_msg x0 x1))) (forall ((x0 node) (x1 node)) (= (votes x0 x1) (__votes x0 x1))) (forall ((x0 node) (x1 value)) (= (decided x0 x1) (__decided x0 x1))) (= voting_quorum __voting_quorum)))
+    ))
+    (and $v))
+    :action become_leader))
+
+(define-fun .action_decide () Bool (!
+    (let (($v (exists ((n node) (v value)) (and (forall ((V value) (N node)) (and (__leader n) (not (__decided n V)) (= (decided N V) (or (__decided N V) (and (= N n) (= V v)))))) (forall ((x0 node) (x1 node)) (= (vote_request_msg x0 x1) (__vote_request_msg x0 x1))) (forall ((x0 node)) (= (voted x0) (__voted x0))) (forall ((x0 node) (x1 node)) (= (vote_msg x0 x1) (__vote_msg x0 x1))) (forall ((x0 node) (x1 node)) (= (votes x0 x1) (__votes x0 x1))) (forall ((x0 node)) (= (leader x0) (__leader x0))) (= voting_quorum __voting_quorum)))
+    ))
+    (and $v))
+    :action decide))

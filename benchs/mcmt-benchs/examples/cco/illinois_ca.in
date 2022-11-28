@@ -1,0 +1,168 @@
+
+
+:comment counting abstraction version (from a paper by Delzanno)
+
+
+:global a int
+:global e int
+:global n int
+:global d int
+:global s int
+:global f int
+
+:initial 
+:var x
+:cnj (= e 0) (= d 0)  (= s 0)  (= f 0)
+ 
+:unsafe 
+:var x 
+:cnj (> d 0) (> (+ d s) 1)  
+:comment cnj (> d 1)   
+:comment cnj (> d 0) (> s 0)   
+
+:system_axiom
+:var x
+:cnj (and (>= e 0) (>= n 0) (>= d 0) (>= s 0) (>= f 0))  
+
+ 
+
+:comment t1  r2 
+:transition
+:var j
+:guard (> n 0) 
+:numcases 1
+:case 
+ :val a
+ :val 1
+ :val (+ n -1) 
+ :val 0  
+ :val 0
+ :val (+ (+ f d) (+ s e)) 
+
+
+
+
+:comment t2 r3
+:transition
+:var j 
+:guard (> n 0)(> d 0)  
+:numcases 1
+:case 
+ :val a
+ :val e
+ :val (+ n -1) 
+ :val (+ d -1) 
+ :val (+ s 2)
+ :val f 
+
+
+
+
+:comment t3 r4
+:transition
+:var j 
+:guard (> n 0) (> (+ s e) 0)  
+:numcases 1
+:case 
+ :val a
+ :val 0
+ :val (+ n -1) 
+ :val d  
+ :val (+ s (+ e 1))
+ :val f 
+
+  
+
+
+:comment t4 r6
+:transition
+:var j 
+:guard (> e 0)  
+:numcases 1
+:case 
+ :val a
+ :val (+ e -1)
+ :val n 
+ :val (+ d 1) 
+ :val s 
+ :val f   
+
+
+
+
+
+:comment t5 r7
+:transition
+:var j 
+:guard (> s 0)  
+:numcases 1
+:case 
+ :val a
+ :val e
+ :val (+ n (+ s -1)) 
+ :val (+ d 1) 
+ :val 0  
+ :val f 
+
+
+
+
+
+:comment t6 r8
+:transition
+:var j 
+:guard (> n 0)  
+:numcases 1
+:case 
+ :val a
+ :val 0
+ :val (+ (+ (+ (+ n e) d) s) -1)
+ :comment val (+ n e d s -1) 
+ :val 1 
+ :val 0  
+ :val f 
+
+
+
+
+:comment t7 r9
+:transition
+:var j 
+:guard (> d 0) 
+:numcases 1
+:case 
+ :val a
+ :val e
+ :val (+ n 1) 
+ :val (+ d -1) 
+ :val s 
+ :val f 
+
+
+
+:comment t8 r10
+:transition
+:var j 
+:guard (> s 0) 
+:numcases 1
+:case 
+ :val a
+ :val e
+ :val (+ n 1) 
+ :val d  
+ :val (+ s -1)
+ :val f 
+
+:comment t9 r11
+:transition
+:var j 
+:guard (> e 0) 
+:numcases 1
+:case 
+ :val a
+ :val (+ e -1)
+ :val (+ n 1) 
+ :val d  
+ :val s 
+ :val f 
+

@@ -1,0 +1,58 @@
+; VMT translation of sharded-kv_unsafe.pyv (IC3PO flavored)
+(declare-sort key 0)
+(declare-sort value 0)
+(declare-sort node 0)
+
+(define-fun .key ((S key)) key (! S :sort 1))
+(define-fun .value ((S value)) value (! S :sort 1))
+(define-fun .node ((S node)) node (! S :sort 1))
+
+(declare-fun __table (node key value) Bool)
+(declare-fun __owner (node key) Bool)
+(declare-fun __transfer_msg (node key value) Bool)
+
+(declare-fun table (node key value) Bool)
+(declare-fun owner (node key) Bool)
+(declare-fun transfer_msg (node key value) Bool)
+
+(define-fun .table ((V0 node) (V1 key) (V2 value)) Bool (! (__table V0 V1 V2) :next table))
+(define-fun .owner ((V0 node) (V1 key)) Bool (! (__owner V0 V1) :next owner))
+(define-fun .transfer_msg ((V0 node) (V1 key) (V2 value)) Bool (! (__transfer_msg V0 V1 V2) :next transfer_msg))
+
+
+
+(define-fun .prop () Bool (!
+ (let (($v (forall ((N1 node) (K key) (V1 value) (N2 node) (V2 value)) (=> (and (__table N1 K V1) (__table N2 K V2)) (and (= N1 N2) (= V1 V2))))
+ ))
+ (and $v))
+ :invar-property 0))
+
+(define-fun .init () Bool (!
+ (let (($v (and (forall ((N node) (K key) (V value)) (not (__table N K V))) (forall ((N node) (K key) (V value)) (not (__transfer_msg N K V))) (forall ((N1 node) (K key) (N2 node)) (=> (and (__owner N1 K) (__owner N2 K)) (= N1 N2))))
+ ))
+ (and $v))
+ :init true))
+
+(define-fun .axiom () Bool (!
+ (let (($v true
+ ))
+ (and $v))
+ :axiom true))
+
+(define-fun .action_reshard () Bool (!
+    (let (($v (exists ((k key) (v value) (n_old node) (n_new node)) (forall ((N node) (K key) (V value)) (and (__table n_old k v) (= (table N K V) (and (__table N K V) (or (not (and (= N n_old) (= K k) (= V v))) true))) (= (owner N K) (and (__owner N K) (not (and (= N n_old) (= K k))))) (= (transfer_msg N K V) (or (__transfer_msg N K V) (and (= N n_new) (= K k) (= V v)))))))
+    ))
+    (and $v))
+    :action reshard))
+
+(define-fun .action_recv_transfer_msg () Bool (!
+    (let (($v (exists ((n node) (k key) (v value)) (forall ((N node) (K key) (V value)) (and (__transfer_msg n k v) (= (transfer_msg N K V) (and (__transfer_msg N K V) (not (and (= N n) (= K k) (= V v))))) (= (table N K V) (or (__table N K V) (and (= N n) (= K k) (= V v)))) (= (owner N K) (or (__owner N K) (and (= N n) (= K k)))))))
+    ))
+    (and $v))
+    :action recv_transfer_msg))
+
+(define-fun .action_put () Bool (!
+    (let (($v (exists ((n node) (k key) (v value)) (and (forall ((N node) (K key) (V value)) (and (__owner n k) (=> (not (and (= N n) (= K k))) (= (table N K V) (__table N K V))) (= (table n k V) (= V v)))) (forall ((x0 node) (x1 key)) (= (owner x0 x1) (__owner x0 x1))) (forall ((x0 node) (x1 key) (x2 value)) (= (transfer_msg x0 x1 x2) (__transfer_msg x0 x1 x2)))))
+    ))
+    (and $v))
+    :action put))

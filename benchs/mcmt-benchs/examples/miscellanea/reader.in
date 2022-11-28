@@ -1,0 +1,206 @@
+:comment	SOURCE: P. R. Manson. PETRI NET THEORY: A SURVEY
+:comment 	A Petri Net's example: "Readers and Writers" 
+:comment        made by Elisabetta Vigolo
+
+
+:index nat
+
+
+
+
+:comment ---------- FUNCTIONS and PREDICATES -----------
+:comment 	We need of 2 Petri Nets: one for the reader and one for the writer.
+
+
+
+:comment  x1
+:global a int
+
+:comment  x2
+:global b int
+
+:comment  x3
+:global c int
+
+:comment  y1
+:global d int
+
+:comment  y2
+:global e int
+
+:comment  y3
+:global f int
+
+:comment  b1
+:global g int
+
+:comment  b2
+:global h int
+
+:system_axiom
+:var x
+:cnj (and (>= a[x] 0)  (>= b[x] 0)  (>= c[x] 0) (>= d[x] 0) (>= e[x] 0)  (>= f[x] 0) (>= g[x] 0)  (>= h[x] 0)  )
+
+:initial
+:var x
+:cnj (=  a  1) (=  b  0) (=  c  0) (=  d  1) (=  e  0) (=  f  0) (=  g  0) (=  h  0) 
+
+
+:u_cnj (=  a  0) (=  c  0) (=  e  0) (=  f  0) (=  d  0) (=  b  0) 
+
+:u_cnj (=  a  0) (=  c  0) (=  e  0) (=  f  0) (=  d  0) (=  h  0) 
+
+:u_cnj (=  a  0) (=  c  0) (=  e  0) (=  f  0) (=  b  0) (=  g  0) 
+
+:u_cnj (=  a  0) (=  c  0) (=  e  0) (=  f  0) (=  g  0) (=  h  0) 
+
+
+
+
+:comment T 1
+:transition
+:var j
+:guard (>=  a  1) 
+:numcases 1
+:case 
+ :val (+  a  -1)
+ :val (+  b  1)
+ :val  c
+ :val  d
+ :val  e
+ :val  f
+ :val (+  g  1)
+ :val  h
+
+
+:comment T 2
+:transition
+:var j
+:guard (>=  d  1) (>=  g  1) 
+:numcases 1
+:case 
+ :val  a
+ :val  b
+ :val  c
+ :val (+  d  -1)
+ :val (+  e  1)
+ :val  f
+ :val (+  g  -1)
+ :val  h
+
+
+
+
+:comment T 3
+:transition
+:var j
+:guard (>=  e  1) 
+:numcases 1
+:case 
+ :val  a
+ :val  b
+ :val  c
+ :val  d
+ :val (+  e  -1)
+ :val (+  f  1)
+ :val  g
+ :val (+  h  1)
+
+
+
+
+:comment T 4
+:transition
+:var j
+:guard (>=  b  1) (>=  h  1) 
+:numcases 1
+:case 
+ :val  a
+ :val (+  b  -1)
+ :val (+  c  1)
+ :val  d
+ :val  e
+ :val  f
+ :val  g
+ :val (+  h  -1)
+
+
+
+:comment T 5
+:transition
+:var j
+:guard (>=  c  1) 
+:numcases 1
+:case 
+ :val (+  a  1)
+ :val  b
+ :val (+  c  -1)
+ :val  d
+ :val  e
+ :val  f
+ :val  g
+ :val  h
+
+
+
+
+:comment T 6
+:transition
+:var j
+:guard (>=  f  1) 
+:numcases 1
+:case 
+ :val  a
+ :val  b
+ :val  c
+ :val (+  d  1)
+ :val  e
+ :val (+  f  -1)
+ :val  g
+ :val  h
+
+
+
+:comment	We have to add 2 fused transitions: T7=T2T3T6 and T8=T4T5T1
+
+:comment T 7
+:transition
+:var j
+:guard (>=  d  1) (>=  g  1) 
+:numcases 1
+:case 
+ :val  a
+ :val  b
+ :val  c
+ :val  d
+ :val  e
+ :val  f
+ :val (+  g  -1)
+ :val (+  h  1)
+
+
+
+
+:comment T 8
+:transition
+:var j
+:guard (>=  b  1) (>=  h  1) 
+:numcases 1
+:case 
+ :val  a
+ :val  b
+ :val  c
+ :val  d
+ :val  e
+ :val  f
+ :val (+  g  1)
+ :val (+  h  -1)
+
+
+
+:comment	We ask to MCMT to accelerate all transitions it can
+:accelerate_all_transitions_you_can
+:display_accelerated_transitions
+
+
+

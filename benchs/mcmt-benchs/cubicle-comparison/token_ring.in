@@ -1,0 +1,58 @@
+:comment from mcmt distribution
+:comment SOURCE:      Abdulla et al., CAV 2007
+
+:smt (define-type locations (subrange 1 2))
+:smt (define length::int)
+:smt (define init_token::int)
+
+
+:local s locations
+:local t locations
+
+
+:initial 
+:var x
+:cnj (or (and (not (= x init_token)) (= s[x] 1)  (< x (+ length 1)) (= t[x] 1)) (and (= x init_token) (= s[x] 1)  (< x (+ length 1)) (= t[x] 2))) 
+ 
+:unsafe 
+:var x 
+:var y
+:cnj (= s[x] 2)  (= s[y] 2)
+
+
+:comment t1
+:transition
+:var x
+:var j
+:guard (= s[x] 1) (= t[x] 2)
+:numcases 2
+:case (= x j)
+ :val 2
+ :val t[j]
+:case  
+ :val s[j]
+ :val t[j]
+
+
+:comment t2
+:transition
+:var x
+:var j
+:guard (= s[x] 2) 
+:numcases 4
+:case (= x j)
+ :val 1
+ :val 1
+:case (and (< x length) (= x (+ j 1))) 
+ :val s[j]
+ :val 2
+:case (and (= x length) (= j 1)) 
+ :val s[j]
+ :val 2
+:case
+ :val s[j]
+ :val t[j]
+
+
+
+

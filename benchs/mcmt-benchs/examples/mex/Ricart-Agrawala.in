@@ -1,0 +1,343 @@
+
+
+:comment SOURCE:      Abdulla et al., CAV 2007 
+
+:smt (define-type locations (subrange 1 4))
+:comment 1=empty,idle 2=wait,req 3=use, ack  4= exiting, ok 
+:index int
+:local a locations
+:local s int
+:comment sender
+:local r int
+:comment receiver
+:local c real
+:comment clock, ts
+:local l real
+:comment last
+:local f bool
+:comment says whether it is a process or not (i.e. a channel)
+:comment
+:global m real
+:comment global timer
+
+
+:initial 
+:var x
+:cnj (= a[x] 1)  (= c[x] 0) (= l[x] 0)  (= m[x] 1)
+
+
+:eevar e real
+ 
+:unsafe 
+:var z1
+:var z2
+:var z3
+:var z4
+:cnj (= a[z1] 3)   (= a[z2] 3)  (= a[z3] 4)  (= a[z4] 4)  (= f[z1] true)  (= f[z2] true)  (= f[z3] false)  (= f[z4] false) (= s[z3] z1) (= s[z4] z2) (= r[z3] z2) (= r[z4] z1) 
+
+:system_axiom
+:var x
+:cnj (= f[x] (= s[x] r[x])) 
+
+
+
+
+
+
+
+:comment t1
+:transition
+:var x
+:var j
+:guard (= a[x] 1) (= f[x] true) (< 0 e) 
+:numcases 4
+:case (= x j)
+ :val 2
+ :val s[j]
+ :val r[j]
+ :val m[j] 
+ :val m[j]
+ :val f[j] 
+ :val (+ e m[j])
+:case (= a[j] 1) (= s[j] x)
+ :val 2
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+:case (not (= a[j] 1))
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+:case (= a[j] 1) (not (= s[j] x))
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+
+:comment t2
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 2) (= f[x] true) (= f[y] false) (= a[y] 3) (= s[y] x) (< 0 e)
+:numcases 3
+:case (= x j)
+ :val 2
+ :val s[j]
+ :val r[j]
+ :val m[j] 
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+:case (= y j)
+ :val 4
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+:case (not (= y j))
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+
+
+
+:comment t3      
+:transition
+:var x
+:var j
+:guard (= a[x] 2) (= f[x] true) 
+:uguard (= f[j] true)
+:uguard (= f[j] false) (not (= s[j] x))
+:uguard (= f[j] false) (= s[j] x) (= a[j] 4)
+:numcases 2
+:case (= x j)
+ :val 3
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j]
+ :val m[j] 
+:case 
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val m[j] 
+
+
+
+
+
+
+
+
+
+
+
+:comment t4a exits and empties channels
+:transition
+:var x
+:var j
+:guard (= a[x] 3) (= f[x] true) 
+:numcases 5
+:case (= x j)
+ :val 4
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val m[j]
+:case (= f[j] false) (= a[j] 4) (= s[j] x)
+ :val 1
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j]
+ :val m[j]
+:case (= f[j] false) (not (= a[j] 4))
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j]
+ :val m[j] 
+:case (= f[j] false)  (= a[j] 4) (not (= s[j] x))
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j]
+ :val m[j] 
+:case (= f[j] true)
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val m[j]
+
+
+
+:comment t4b send ack to pending req        t5
+:transition
+:var x
+:var j
+:guard (= a[x] 4) (= f[x] true)  (< 0 e)
+:uguard (= f[j] true)  
+:uguard (= f[j] false) (not (= r[j] x))
+:uguard (= f[j] false) (not (= a[j] 2)) (= r[j] x)
+:numcases 2
+:case (= x j)
+ :val 1
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+:case 
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+
+
+
+
+
+
+
+
+
+
+
+
+:comment t5          t6
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 1) (= f[x] true) (= f[y] false) (= a[y] 2) (= r[y] x) (>= c[x] c[y]) (< 0 e)
+:numcases 3
+:case (= x j)
+ :val 1
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j]
+ :val (+ e m[j]) 
+:case (= y j)
+ :val 3
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+:case (not (= y j))
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+
+
+
+:comment t6           t7
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 2) (= f[x] true) (= f[y] false) (= a[y] 2) (= r[y] x) (< c[y] l[x]) (< 0 e) 
+:numcases 3
+:case (= x j)
+ :val 2
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j]
+ :val (+ e m[j])
+:case (= y j)
+ :val 3
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j]
+ :val (+ e m[j])
+:case (not (= y j))
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+
+
+
+
+:comment t7                 t8
+:transition
+:var x
+:var y
+:var j
+:guard (= a[x] 2) (= f[x] true) (= f[y] false) (= a[y] 2) (= r[y] x) (= c[y] l[x]) (< s[y] x) (< 0 e)
+:numcases 3
+:case (= x j)
+ :val 2
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j]
+ :val (+ e m[j])
+:case (= y j)
+ :val 3
+ :val s[j]
+ :val r[j]
+ :val m[j]
+ :val l[j]
+ :val f[j]
+ :val (+ e m[j])
+:case (not (= y j))
+ :val a[j]
+ :val s[j]
+ :val r[j]
+ :val c[j]
+ :val l[j]
+ :val f[j] 
+ :val (+ e m[j])
+

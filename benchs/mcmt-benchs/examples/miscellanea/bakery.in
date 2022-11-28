@@ -1,0 +1,143 @@
+:comment   -------------------------------------------------
+:comment   Taken from Pnueli lecture notes "Analysis of Reactive Systems" 2002.  
+:comment   Available on the web at 
+:comment      http://cs.nyu.edu/courses/fall02/G22.3033-004/index.htm
+:comment   
+:comment   parameterized N : integer where N>1
+:comment           local y : array[1..N] of natural where forall x.y[x] = 0
+:comment   
+:comment   P[1] || P[2] || ... || P[N]
+:comment   
+:comment   where
+:comment   
+:comment   P[i] :: loop forever do {
+:comment          l1 : Non-critical
+:comment          l2 : y[i] := choose m such that 
+:comment                  forall j.(m>y[j])
+:comment          l3 : await forall j.(y[j]=0 \/ y[j] < y[j])
+:comment          l4 : CRITICAL
+:comment          l5 : y[i] := 0 }
+:comment   
+:comment   Below, y is translated as a local array variable of type natural.
+:comment   One more local array variable l is introduced to store the values of
+:comment   the program counter of each process.  The program constructs are
+:comment   translated in the obvious way (see the book by Manna and Pnueli for
+:comment   more details).  
+:smt (define-type locations ( subrange 1 5))
+
+
+
+:comment l
+:local a locations
+:comment Y
+:local b int
+:comment e
+:eevar c int
+
+
+
+:initial
+:var x
+:cnj (=  a[x]  1) (=  b[x]  0) 
+
+
+:unsafe
+:var z1
+:var z2
+:cnj (=  a[z1]  4) (=  a[z2]  4) 
+
+:system_axiom
+:var x
+:cnj (>= b[x] 0)  
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) 
+:numcases 2
+:case (= x j)
+ :val  2
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (=  a[x]  2) 
+:uguard (>  c  b[j]) 
+:numcases 2
+:case (= x j)
+ :val  3
+ :val  c
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (=  a[x]  3) 
+:uguard (=  b[j]  0) 
+:numcases 2
+:case (= x j)
+ :val  4
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (=  a[x]  3) 
+:uguard (<  b[x]  b[j]) 
+:numcases 2
+:case (= x j)
+ :val  4
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (=  a[x]  4) 
+:numcases 2
+:case (= x j)
+ :val  5
+ :val b[j]
+:case 
+ :val a[j]
+ :val b[j]
+
+
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (=  a[x]  5) 
+:numcases 2
+:case (= x j)
+ :val  1
+ :val  0
+:case 
+ :val a[j]
+ :val b[j]

@@ -1,0 +1,610 @@
+
+:comment 	SOURCE:  B. Berard, L. Fribourg. REACHABILITY ANALYSIS OF (TIMED) PETRI NETS USING REAL ARITHMETIC    
+:comment        Timed Net's example: a Horse Manufactory (verification of property W)  		  
+:comment        made by Elisabetta Vigolo
+
+
+
+
+:index nat
+
+
+:comment ---------- FUNCTIONS and PREDICATES -----------
+:comment 	We need of 3 Timed Nets: one for the carver, one for the painter and one for the observer.
+
+:comment map_back carver
+:comment  carver
+:global a int
+:comment map_back painter
+:comment  painter
+:global b int
+:comment map_back observer
+:comment  observer
+:global c int
+:comment map_back yc
+:comment  yc
+:global d int
+:comment map_back yp
+:comment  yp
+:global e int
+:comment map_back yo
+:comment  yo
+:global f int
+:comment map_back n
+:comment  n
+:global g int
+
+:eevar h int
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:system_axiom
+:var x
+:cnj  (>=  h  0) 
+
+
+
+
+:comment ----------------------axioms--------------------------
+
+:initial
+:var x
+:cnj (=  g[x]  0) (=  a[x]  0) (=  b[x]  0) (=  c[x]  0) (=  d[x]  0) (=  e[x]  0) (=  f[x]  0) 
+
+
+:u_cnj (=  c[z1]  2) 
+
+
+
+
+:comment T 1
+:transition
+:var x
+:var j
+:guard (=  a[x]  0) (=  b[x]  0) (=  c[x]  0) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val  0
+ :val  e[x]
+ :val  0
+ :val  g[x]
+:case 
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val  0
+ :val  e[x]
+ :val  0
+ :val  g[x]
+
+
+
+:comment T 2
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) (=  b[x]  0) (=  c[x]  1) (<  d[x]  2) (=  f[x]  7) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+
+
+
+:comment T 3
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) (=  b[x]  0) (=  c[x]  1) (<  d[x]  2) (<=  f[x]  7) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  -1)
+ :val (+  b[x]  1)
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  1)
+:case 
+ :val (+  a[x]  -1)
+ :val (+  b[x]  1)
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  1)
+
+
+
+:comment T 4
+:transition
+:var x
+:var j
+:guard (=  a[x]  0) (=  b[x]  1) (=  c[x]  1) (<  e[x]  5) (=  f[x]  7) (<  d[x]  2) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  1)
+ :val (+  b[x]  -1)
+ :val (+  c[x]  1)
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+:case 
+ :val (+  a[x]  1)
+ :val (+  b[x]  -1)
+ :val (+  c[x]  1)
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+
+
+
+:comment T 5
+:transition
+:var x
+:var j
+:guard (=  a[x]  0) (=  b[x]  0) (=  c[x]  0) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val  c[x]
+ :val  0
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+:case 
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val  c[x]
+ :val  0
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+
+
+
+:comment T 6
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) (=  b[x]  0) (=  c[x]  0) (<  d[x]  2) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  -1)
+ :val (+  b[x]  1)
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  1)
+:case 
+ :val (+  a[x]  -1)
+ :val (+  b[x]  1)
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  1)
+
+
+
+:comment T 7
+:transition
+:var x
+:var j
+:guard (=  g[x]  1) (=  a[x]  0) (=  b[x]  1) (=  c[x]  0) (<  e[x]  5) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val (+  b[x]  -1)
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  -1)
+:case 
+ :val  a[x]
+ :val (+  b[x]  -1)
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  -1)
+
+
+
+:comment T 8
+:transition
+:var x
+:var j
+:guard (>=  g[x]  2) (=  a[x]  0) (=  b[x]  1) (=  c[x]  0) (<  e[x]  5) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  -1)
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  -1)
+
+
+
+:comment T 9
+:transition
+:var x
+:var j
+:guard (=  a[x]  0) (=  b[x]  1) (=  c[x]  0) (<  e[x]  5) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val  0
+ :val  e[x]
+ :val  0
+ :val  g[x]
+:case 
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val  0
+ :val  e[x]
+ :val  0
+ :val  g[x]
+
+
+
+:comment T 10
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) (=  b[x]  1) (=  c[x]  1) (<  d[x]  2) (<  e[x]  5) (<=  f[x]  7) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  -1)
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  1)
+:case 
+ :val (+  a[x]  -1)
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  1)
+
+
+
+:comment T 11
+:transition
+:var x
+:var j
+:guard (=  a[x]  0) (=  b[x]  1) (=  c[x]  0) (<  e[x]  5) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val  c[x]
+ :val  0
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+:case 
+ :val (+  a[x]  1)
+ :val  b[x]
+ :val  c[x]
+ :val  0
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+
+
+
+:comment T 12
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) (=  b[x]  1) (=  c[x]  0) (<  d[x]  2) (<  e[x]  5) 
+:numcases 2
+:case (= x j)
+ :val (+  a[x]  -1)
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  1)
+:case 
+ :val (+  a[x]  -1)
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  1)
+
+
+
+:comment T 13
+:transition
+:var x
+:var j
+:guard (=  g[x]  1) (=  a[x]  1) (=  b[x]  1) (=  c[x]  0) (<  d[x]  2) (<  e[x]  5) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val (+  b[x]  -1)
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  -1)
+:case 
+ :val  a[x]
+ :val (+  b[x]  -1)
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  -1)
+
+
+
+:comment T 14
+:transition
+:var x
+:var j
+:guard (>=  g[x]  2) (=  a[x]  1) (=  b[x]  1) (=  c[x]  0) (<  d[x]  2) (<  e[x]  5) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  -1)
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val  d[x]
+ :val  0
+ :val  f[x]
+ :val (+  g[x]  -1)
+
+
+
+:comment T 15
+:transition
+:var x
+:var j
+:guard (=  a[x]  1) (=  b[x]  1) (=  c[x]  1) (<  d[x]  2) (<  e[x]  5) (=  f[x]  7) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val (+  c[x]  1)
+ :val  d[x]
+ :val  e[x]
+ :val  f[x]
+ :val  g[x]
+
+
+
+:comment	We add the "delay reachability relations"
+:comment T 16
+:transition
+:var x
+:var j
+:guard (=  1  1) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+
+
+
+:comment T 17
+:transition
+:var x
+:var j
+:guard (<  d[x]  2) (< (+  d[x]  h)  2) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+
+
+
+:comment T 18
+:transition
+:var x
+:var j
+:guard (<  e[x]  5) (< (+  e[x]  h)  5) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+
+
+
+:comment T 19
+:transition
+:var x
+:var j
+:guard (<  d[x]  2) (< (+  d[x]  h)  2) (<=  f[x]  7) (<= (+  f[x]  h)  7) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+
+
+
+:comment T 20
+:transition
+:var x
+:var j
+:guard (<  e[x]  5) (< (+  e[x]  h)  5) (<=  f[x]  7) (<= (+  f[x]  h)  7) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+
+
+
+:comment T 21
+:transition
+:var x
+:var j
+:guard (<  d[x]  2) (< (+  d[x]  h)  2) (<  e[x]  5) (< (+  e[x]  h)  5) (<=  f[x]  7) (<= (+  f[x]  h)  7) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+
+
+
+:comment T 22
+:transition
+:var x
+:var j
+:guard (<  e[x]  5) (< (+  e[x]  h)  5) (<  d[x]  2) (<= (+  d[x]  h)  2) 
+:numcases 2
+:case (= x j)
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
+:case 
+ :val  a[x]
+ :val  b[x]
+ :val  c[x]
+ :val (+  d[x]  h)
+ :val (+  e[x]  h)
+ :val (+  f[x]  h)
+ :val  g[x]
