@@ -1107,7 +1107,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
         while res == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
-            minimize_model(s, paramts.sorts)
+            with Timer('minimizing_model_time'):
+                minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(abstract_predicates_dict.values(), \
@@ -1187,11 +1188,11 @@ def updria(opts, paramts : ParametricTransitionSystem):
                         #      print(substitute_diagram(d, abstract_predicates_dict, abs_vars))
                         s1.reset()
                 
-            if set(frame_sequence[i+1]) == set(frame_sequence[i]):
-                print('Proved! Inductive invariant:')
-                for x in frame_sequence[i]:
-                    print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
-                return VerificationResult(SAFE, frame_sequence[i])
+                if set(frame_sequence[i]) == set(frame_sequence[i+1]):
+                    print('Proved! Inductive invariant:')
+                    for x in frame_sequence[i]:
+                        print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
+                    return VerificationResult(SAFE, frame_sequence[i])
             # f = Implies(And(*frame_sequence[i+1]), And(*frame_sequence[i]))
             # s3 = z3.Solver()
             # s3.from_string(msat_to_smtlib2_ext(env, Not(f), 'ALL', True))
