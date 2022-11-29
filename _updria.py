@@ -43,7 +43,7 @@ def getopts():
     p.add_argument('--vmt-property', type=int, default=0)
     p.add_argument('infile', nargs='?')
     p.add_argument('-l', '--input-language',
-                   choices=['vmt', 'mcmt', 'ic3po'])
+                   choices=['vmt', 'mcmt'])
     opts = Options()
     p.parse_args(namespace=opts)
     return opts
