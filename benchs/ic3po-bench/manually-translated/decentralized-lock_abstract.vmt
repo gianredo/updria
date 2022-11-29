@@ -1,0 +1,185 @@
+(declare-sort node 0)
+
+;; (declare-const gt (Array node Int))
+(declare-const has_lock (Array node Bool))
+(declare-const msg_t (Array node Int))
+(declare-const msg_n (Array node node))
+
+;; (declare-const gt.next (Array node Int))
+(declare-const has_lock.next (Array node Bool))
+(declare-const msg_t.next (Array node Int))
+(declare-const msg_n.next (Array node node))
+
+;; (define-fun sv.gt () (Array node Int) (! gt :next gt.next))
+(define-fun sv.has_lock () (Array node Bool) (! has_lock :next has_lock.next))
+(define-fun sv.msg_t () (Array node Int) (! msg_t :next msg_t.next))
+(define-fun sv.msg_n () (Array node node) (! msg_n :next msg_n.next))
+
+(declare-const first node)
+(define-fun frozen.first () node (! first :rigid true))
+
+(declare-const t Int)
+
+(define-fun prop () Bool
+  (!
+   (forall ((X node) (Y node))
+           (=> (not (= X Y))
+               (not (and (select has_lock X) (select has_lock Y)))))
+   :invar-property 0)
+  )
+
+(define-fun init () Bool
+  (!
+   (forall ((V0 node))
+           (and
+            (ite (= V0 first) (select has_lock V0) (not (select has_lock V0)))
+            (ite (= V0 first) (= (select msg_t V0) 0) (= (select msg_t V0) (- 1)))
+            ;;(= (select gt V0) 0)
+            )
+           )
+   :init true)
+  )
+
+
+(define-fun release_lock () Bool
+  (exists ((x node) (y node))
+          (forall ((V0 node))
+                  (and
+                   (ite (= V0 x)
+                        (not (select has_lock.next V0))
+                        (= (select has_lock.next V0) (select has_lock V0)))
+                   (ite (= V0 x)
+                        (= (select msg_t.next V0) t)
+                        (= (select msg_t.next V0) (select msg_t V0)))
+                   (ite (= V0 x)
+                        (= (select msg_n.next V0) y)
+                        (= (select msg_n.next V0) (select msg_n V0)))
+                   ;;(= (select gt.next V0) (select gt V0))
+                   (select has_lock x)
+                   (< (select msg_t x) t)
+                   )
+                  )
+          )
+  )
+
+
+(define-fun take_lock () Bool
+  (exists ((x node) (y node))
+          (forall ((V0 node))
+                  (and
+                   (ite (= V0 y)
+                        (select has_lock.next V0)
+                        (= (select has_lock.next V0) (select has_lock V0)))
+                   (ite (= V0 y)
+                        (> (select msg_t.next V0) t)
+                        (= (select msg_t.next V0) (select msg_t V0)))
+                   (= (select msg_t.next V0) (select msg_t V0))
+                   (= (select msg_n.next V0) (select msg_n V0))
+                   (= t (select msg_t x))
+                   (= y (select msg_n x))
+                   ;;(> t (select msg_t y))
+                   )
+                  )
+          )
+  )
+
+(define-fun trans () Bool
+  (! (or
+      take_lock
+      release_lock
+      )
+     :trans true))
+
+
+
+(define-fun stupid () Bool
+  (!
+   (forall ((X node))
+        (exists ((Y node))
+    
+           (=> (not (= X Y))
+               (=>  (select has_lock X) (not (select has_lock Y))))))
+   :invar false)
+  )
+
+(define-fun stupid-prop () Bool
+  (!
+   (forall ((X node))
+        (exists ((Y node))
+    
+           (=> (not (= X Y))
+               (=>  (select has_lock X) (not (select has_lock Y))))))
+   :invar-property 1)
+  )
+;; -----------------------------------------------------------------------------
+
+;; (declare-sort node 0)
+;; (declare-sort time 0)
+
+;; (define-fun .node ((S node)) node (! S :sort 2))
+;; (define-fun .time ((S time)) time (! S :sort 0))
+
+;; (declare-fun __gt (time node) Bool)
+;; (declare-fun __has_lock (node) Bool)
+;; (declare-fun __msg (node node time) Bool)
+
+;; (declare-fun gt (time node) Bool)
+;; (declare-fun has_lock (node) Bool)
+;; (declare-fun msg (node node time) Bool)
+
+;; (define-fun .gt ((V0 time) (V1 node)) Bool (! (__gt V0 V1) :next gt))
+;; (define-fun .has_lock ((V0 node)) Bool (! (__has_lock V0) :next has_lock))
+;; (define-fun .msg ((V0 node) (V1 node) (V2 time)) Bool (! (__msg V0 V1 V2) :next msg))
+
+;; (declare-fun first () node)
+;; (declare-fun le (time time) Bool)
+;; (declare-fun zero () time)
+
+;; (define-fun .first () node (! first :global true))
+;; (define-fun .le ((V0 time) (V1 time)) Bool (! (le V0 V1) :global true))
+;; (define-fun .zero () time (! zero :global true))
+
+;; (define-fun .prop () Bool (! 
+;;  (let (($v (forall ((X node) (Y node)) (not (and (not (= X Y)) (__has_lock X) (__has_lock Y))))
+;;  ))
+;;  (and $v))
+;;  :invar-property 0))
+
+;; (define-fun .axiom () Bool (! 
+;;  (let (($v (and (forall ((X time)) (le X X)) (forall ((X time) (Y time) (Z time)) (=> (and (le X Y) (le Y Z)) (le X Z))) (forall ((X time) (Y time)) (=> (and (le X Y) (le Y X)) (= X Y))) (forall ((X time) (Y time)) (or (le X Y) (le Y X))) (forall ((X time)) (le zero X)))
+;;  ))
+;;  (and $v))
+;;  :axiom true))
+
+;; (define-fun .init () Bool (! 
+;;  (let (($v (and (forall ((V0 node)) (= (__has_lock V0) (= V0 first))) (forall ((V0 node) (V1 node) (V2 time)) (= (__msg V0 V1 V2) false)) (forall ((V0 time) (V1 node)) (= (__gt V0 V1) (not (= V0 zero)))))
+;;  ))
+;;  (and $v))
+;;  :init true))
+
+;; (define-fun .action_ext:release_lock () Bool (! 
+;;  (let (($v
+;;         (exists ((V__fml:t time) (V__fml:x node) (V__fml:y node))
+;;                 (and
+;;                  (forall ((V0 node))
+;;                          (= (has_lock V0) (ite (= V0 V__fml:x) false (__has_lock V0))))
+;;                  (forall ((V0 node) (V1 node) (V2 time))
+;;                          (= (msg V0 V1 V2) (ite (and (= V0 V__fml:x) (= V1 V__fml:y) (= V2 V__fml:t)) true (__msg V0 V1 V2))))
+;;                  (__has_lock V__fml:x) (__gt V__fml:t V__fml:x)))
+;;  ))
+;;  (and $v))
+;;  :action ext:release_lock))
+
+;; (define-fun .action_ext:take_lock () Bool (! 
+;;  (let (($v (exists ((V__fml:t time) (V__fml:x node) (V__fml:y node))
+;;                    (and
+;;                     (forall ((V0 node))
+;;                             (= (has_lock V0) (ite (= V0 V__fml:y) true (__has_lock V0))))
+;;                     (forall ((V0 time) (V1 node))
+;;                             (= (gt V0 V1) (ite (= V1 V__fml:y) (ite (not (le V0 V__fml:t)) true false) (__gt V0 V1))))
+;;                     (__msg V__fml:x V__fml:y V__fml:t)
+;;                     (__gt V__fml:t V__fml:y)))
+;;  ))
+;;  (and $v))
+;;  :action ext:take_lock))
+

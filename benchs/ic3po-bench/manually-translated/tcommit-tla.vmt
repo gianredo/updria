@@ -1,0 +1,72 @@
+(declare-sort resource_manager 0)
+
+(declare-const aborted (Array resource_manager Bool))
+(declare-const committed (Array resource_manager Bool))
+(declare-const working (Array resource_manager Bool))
+(declare-const prepared (Array resource_manager Bool))
+
+(declare-const aborted.next (Array resource_manager Bool))
+(declare-const committed.next (Array resource_manager Bool))
+(declare-const working.next (Array resource_manager Bool))
+(declare-const prepared.next (Array resource_manager Bool))
+
+(define-fun aborted-sv () Bool (! aborted  :next aborted.next))
+(define-fun committed-sv () Bool (! committed :next committed.next))
+(define-fun working-sv () Bool (! working :next working.next))
+(define-fun prepared-sv () Bool (! prepared :next prepared.next))
+
+(define-fun .prop () Bool (! 
+ (let (($v (forall ((R1 resource_manager) (R2 resource_manager)) (not (and (select aborted R1) (select committed R2) (not (= R1 R2)))))
+ ))
+ (and $v))
+ :invar-property 0))
+
+(define-fun .prop-false () Bool (! 
+ (let (($v (forall ((R1 resource_manager) (R2 resource_manager)) (not (and (select committed R1) (select committed R2))))
+ ))
+ (and $v))
+ :invar-property 1))
+
+
+(define-fun .init () Bool (! 
+ (let (($v (and (forall ((V0 resource_manager)) (= (select working V0) true)) (forall ((V0 resource_manager)) (= (select prepared V0) false)) 
+ (forall ((V0 resource_manager)) (= (select committed V0) false)) (forall ((V0 resource_manager)) (= (select aborted V0) false)))
+ ))
+ (and $v))
+ :init true))
+
+(define-fun decide_abort () Bool  
+ (let (($v (exists ((V resource_manager)) 
+ (and 
+ (forall ((V0 resource_manager)) (= (select working.next V0) (ite (= V0 V) false (select working V0)))) 
+ (forall ((V0 resource_manager)) (= (select prepared.next V0) (ite (= V0 V) false (select prepared V0)))) 
+ (forall ((V0 resource_manager)) (= (select committed.next V0)  (ite (= V0 V) false (select committed V0)))) 
+ (forall ((V0 resource_manager)) (= (select aborted.next V0) (ite (= V0 V) true (select aborted V0)))) (or (select working V) (select prepared V)) 
+ (forall ((R resource_manager)) (not (select committed R)))))
+ ))
+ (and $v)))
+
+(define-fun prepare () Bool 
+ (let (($v (exists ((V resource_manager)) 
+ (and 
+    (forall ((V0 resource_manager)) (= (select working.next V0) (ite (= V0 V) false (select working V0)))) 
+    (forall ((V0 resource_manager)) (= (select prepared.next V0) (ite (= V0 V) true (select prepared V0))))
+    (forall ((V0 resource_manager)) (= (select committed.next V0) (ite (= V0 V) false (select committed V0)))) 
+    (forall ((V0 resource_manager)) (= (select aborted.next V0) (ite (= V0 V) false (select aborted V0)))) 
+    (select working V)))
+ ))
+ (and $v)))
+
+(define-fun decide_commit () Bool  
+ (let (($v (exists ((V resource_manager)) 
+ (and 
+    (forall ((V0 resource_manager)) (= (select working.next V0) (ite (= V0 V) false (select working V0))))
+    (forall ((V0 resource_manager)) (= (select prepared.next V0) (ite (= V0 V) false (select prepared V0))))
+    (forall ((V0 resource_manager)) (= (select committed.next V0) (ite (= V0 V) true (select committed V0))))
+    (forall ((V0 resource_manager)) (= (select aborted.next V0) (ite (= V0 V) false (select aborted V0))))
+    (select prepared V) 
+    (forall ((R resource_manager)) (or (select prepared R) (select committed R)))))
+ ))
+ (and $v)))
+
+(define-fun trans () Bool (! (or decide_abort prepare decide_commit) :trans true))

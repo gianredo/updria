@@ -1,0 +1,77 @@
+(declare-sort thread 0)
+
+(declare-fun __pc1 (thread) Bool)
+(declare-fun __service () Int)
+(declare-fun __pc3 (thread) Bool)
+(declare-fun __m (thread) Int)
+(declare-fun __next_ticket () Int)
+(declare-fun __pc2 (thread) Bool)
+
+(declare-fun pc1 (thread) Bool)
+(declare-fun service () Int)
+(declare-fun pc3 (thread) Bool)
+(declare-fun m (thread) Int)
+(declare-fun next_ticket () Int)
+(declare-fun pc2 (thread) Bool)
+
+(define-fun .pc1 ((V0 thread)) Bool (! (__pc1 V0) :next pc1))
+(define-fun .service () Int (! __service :next service))
+(define-fun .pc3 ((V0 thread)) Bool (! (__pc3 V0) :next pc3))
+(define-fun .m ((V0 thread)) Int (! (__m V0) :next m))
+(define-fun .next_ticket () Int (! __next_ticket :next next_ticket))
+(define-fun .pc2 ((V0 thread)) Bool (! (__pc2 V0) :next pc2))
+
+
+(define-fun .prop () Bool (! 
+ (let (($v (forall ((T1 thread) (T2 thread)) (=> (and (__pc3 T1) (__pc3 T2)) (= T1 T2)))
+ ))
+ (and $v))
+ :invar-property 0))
+
+(define-fun .init () Bool (! 
+ (let (($v (and 
+ 
+            (forall ((V0 thread)) (= (__pc1 V0) true)) (forall ((V0 thread)) (= (__pc2 V0) false)) 
+            (forall ((V0 thread)) (= (__pc3 V0) false)) 
+            (= __service 1) 
+            (= __next_ticket 1) 
+            (forall ((V0 thread)) (= (__m V0) 0)))
+ ))
+ (and $v))
+ :init true))
+
+(define-fun .action_ext:step12 () Bool (! 
+ (let (($v (exists ((V__fml:t thread)) 
+    (and 
+        (forall ((V0 thread)) (= (m V0) (ite (= V0 V__fml:t)  __next_ticket (__m V0)))) 
+        (forall ((V0 thread)) (= (pc1 V0) (ite (= V0 V__fml:t) false (__pc1 V0)))) 
+        (forall ((V0 thread)) (= (pc2 V0) (ite (= V0 V__fml:t) true (__pc2 V0)))) 
+        (= next_ticket (+ __next_ticket 1)) 
+        (__pc1 V__fml:t) ))
+ ))
+ (and $v))
+ :action ext:step12))
+
+(define-fun .action_ext:step31 () Bool (! 
+ (let (($v 
+        (exists ((V__fml:t thread)) 
+            (and (forall ((V0 thread)) (= (pc3 V0) (ite (= V0 V__fml:t) false (__pc3 V0)))) 
+                  (forall ((V0 thread)) (= (pc1 V0) (ite (= V0 V__fml:t) true (__pc1 V0)))) 
+                  (= service (+ __service 1)) 
+                  (__pc3 V__fml:t) 
+                   ))
+ ))
+ (and $v))
+ :action ext:step31))
+
+(define-fun .action_ext:step23 () Bool (! 
+ (let (($v (exists ((V__fml:t thread)) 
+    (and (forall ((V0 thread)) (= (pc2 V0) (ite (= V0 V__fml:t) false (__pc2 V0)))) 
+         (forall ((V0 thread)) (= (pc3 V0) (ite (= V0 V__fml:t) true (__pc3 V0))))
+         (__pc2 V__fml:t) 
+         ( = (__m V__fml:t) __service) 
+    ))
+ ))
+ (and $v))
+ :action ext:step23))
+
