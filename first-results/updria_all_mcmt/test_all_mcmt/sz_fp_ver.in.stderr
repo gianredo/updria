@@ -1,6 +1,0 @@
-terminate called after throwing an instance of 'std::bad_alloc'
-  what():  std::bad_alloc
-Aborted (core dumped)
-real 6422.06
-user 6418.01
-sys 3.22

@@ -1,9 +1,0 @@
-ASSERTION VIOLATION
-File: ../src/smt/smt_context.cpp
-Line: 2459
-UNEXPECTED CODE WAS REACHED.
-Z3 4.8.14.0
-Please file an issue with this message and more detail about how you encountered it at https://github.com/Z3Prover/z3/issues/new
-real 461.52
-user 456.88
-sys 3.82
