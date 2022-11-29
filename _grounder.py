@@ -151,7 +151,7 @@ def cardinality_axioms(paramts, conc_size, only_cur=False):
     return axioms
 
 
-#function for increasing cardinality
+#functions for increasing cardinality
 def get_succ(l : list):
     n = len(l)
     for i in range(n):
@@ -186,6 +186,16 @@ def get_next(root : list):
         new = find_min(queue)
         queue.remove(new)
         yield from get_next(new)
+
+
+def increase_size(conc_size):
+
+    curr_size = [conc_size[s] for s in conc_size]
+    new_size = next(get_next(curr_size))
+    return {s : new_size[i] for i,s in enumerate(conc_size)}
+
+
+#functions for grounding
 
 
 def get_concretization(opts, paramts, conc_size, lemmas):
@@ -280,6 +290,24 @@ def get_concrete_bmc_formula(opts, cti_queue, paramts, sizes):
     return unrolling, vars_at_time, concrete_vars, varlist
 
 
+def check_if_new_predicates(new_predicates, old_predicates_dict, varlist):
+    new_predicates, _ = remove_duplicates(new_predicates, varlist)
+    # print('new')
+    # for x in set(new_predicates):
+    #     print(x)
+    # print('old')
+    # for x in set(old_predicates_dict):
+    #     print(x)
+    if set(new_predicates) <= set(old_predicates_dict):
+        print('no new predicates found! increasing size...')
+        # fail
+        return False
+    else:
+        return True
+
+
+queue = []
+visited = []
 def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
     '''
     this function returns a triple 
@@ -287,7 +315,7 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
         - the real cti or None
         - a set of predicates or None
     ''' 
-
+    global queue, visited
     sizes = {s : 1 for s in paramts.sorts} 
     # take the max among cti's
     for c in cti_queue:
@@ -295,17 +323,18 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
             n = len(c.universe_dict[s])
             if  n > sizes[s]:
                 sizes[s] = n 
-    queue = []
+    
     queue.append([sizes[s] for s in sizes])
     #visited list of size already done
-    visited = []
+
 
     import _updria
     concrete_cti = [_updria.substitute_diagram(c.diagram, predicates_dict, abs_vars) for c in cti_queue]
     
     while True:
 
-        bmc_list_formula, vars_at_time, concrete_vars, varlist = get_concrete_bmc_formula(opts, concrete_cti, paramts, sizes)    
+        bmc_list_formula, vars_at_time, concrete_vars, varlist = get_concrete_bmc_formula(opts, concrete_cti,\
+             paramts, sizes)    
         groups = []
         wenv = msat_create_shared_env({'interpolation' : 'true'}, env)
         
@@ -340,7 +369,7 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
                 # if all predicates are already discovered... restar with greater size
                 
                 all_preds += predicates
-            if True:
+            if check_if_new_predicates(all_preds, predicates_dict, varlist):
                 return True, None, all_preds, varlist
             else:
                 sizes = increase_size(sizes)
