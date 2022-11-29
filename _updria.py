@@ -70,6 +70,7 @@ class Statistics:
         self.num_final_preds = 0
         self.num_ref_iterations = 0
         self.max_concrete_size = 0
+        self.num_predicates_inductive = 0
         
 
     def __str__(self):
@@ -87,7 +88,8 @@ class Statistics:
          "number of refinement steps: %d" % self.num_ref_iterations,
          "number of initial predicates: %d" % self.num_initial_preds,
          "number of final predicates: %d" % self.num_final_preds,
-         "max concrete size: %d" % self.max_concrete_size
+         "max concrete size: %d" % self.max_concrete_size,
+         "number of predicates used in the inductive invariant: %d" % self.num_predicates_inductive
             ]
         return "\n".join(out)
 
@@ -1196,8 +1198,20 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     print('Proved! Inductive invariant:')
                     for x in frame_sequence[i]:
                         print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
+                    
+                    #let's count the predicates in the invariant
+                    actual_predicates = set()
+                    for f in frame_sequence[i]:
+                        predicates = find_initial_predicates(paramts.sorts, f, TRUE())
+                        norm_predicates, _ = remove_duplicates(predicates)
+                        actual_predicates = actual_predicates.union(norm_predicates)
+                    _stats.num_predicates_inductive = len(actual_predicates)
+
+                    #count the number of total index predicates
                     _stats.num_final_preds = len(abstract_predicates_dict)
                     return VerificationResult(SAFE, frame_sequence[i])
+            
+            # semantic fixpoint check
             # f = Implies(And(*frame_sequence[i+1]), And(*frame_sequence[i]))
             # s3 = z3.Solver()
             # s3.from_string(msat_to_smtlib2_ext(env, Not(f), 'ALL', True))
