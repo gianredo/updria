@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "updria.py", line 87, in <module>
+    main()
+  File "updria.py", line 81, in main
+    res = updria(opts, ts)
+  File "/home/gredondi/src/updria/_updria.py", line 1131, in updria
+    recblockres = measure('rec_block_time', recblock, paramts, abstract_predicates_dict,\
+  File "/home/gredondi/src/updria/_updria.py", line 108, in measure
+    return func(*args, **kwds)
+  File "/home/gredondi/src/updria/_updria.py", line 983, in recblock
+    gen_diagram = measure('generalization_time', generalize_diagram, paramts, abs_vars, \
+  File "/home/gredondi/src/updria/_updria.py", line 108, in measure
+    return func(*args, **kwds)
+  File "/home/gredondi/src/updria/_updria.py", line 911, in generalize_diagram
+    assert is_sat == z3.unsat
+AssertionError
+real 7202.56
+user 7200.90
+sys 0.86

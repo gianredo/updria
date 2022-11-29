@@ -1000,7 +1000,7 @@ def recblock(paramts, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init)
             return True
 
         else:
-            assert str(s.check) == 'unknown'
+            assert str(s.check()) == 'unknown'
             s.reset()
             raise NotImplementedError
 

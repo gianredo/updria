@@ -1,0 +1,518 @@
+There are 31 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+Add new counter 3
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+Add new counter 4
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+Add new counter 5
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 5
+blocked
+generalizing diagram...
+Add new counter 6
+propagation phase...
+Proved! Inductive invariant:
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`not` (Param['[Int]'][Bool] _A4 (index2int 'index_0))))))
+(`not` (`exists_index` 'index_0 (`not` (Param['[Int]'][Bool] _a0_token (index2int 'index_0)))))
+(`not` (`and` (`not` _m2_taint_a3) (`not` (`=_int` _m2_conn_a3 0))))
+(`not` (`and` (`not` _m3_taint_a4) (`not` (`=_int` _m3_conn_a4 0))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _A4 (index2int 'index_0)) (`<=_int` (index2int 'index_0) 0))))
+(`not` (`exists_index` 'index_0 (`and` (`not` _m3_token) (Param['[Int]'][Bool] _a4_token (index2int 'index_0)))))
+(`not` (`exists_index` 'index_0 (`and` (`not` _m3_taint_a4) (Param['[Int]'][Bool] _a4_token (index2int 'index_0)))))
+(`not` (`and` (`and` (`and` (`not` _m0_taint_a0) (`not` _m1_taint_a2)) (`not` (`=_int` _m0_conn_a0 0))) (`not` (`=_int` _m1_conn_a2 0))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` (`and` (`not` (`=_int` _m2_conn_a2 0)) (`not` (`=_int` _m0_conn_a1 0))) (`not` (`=_int` _m3_conn_a3 0))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`not` (`=_int` _m2_conn_a3 0)))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`not` (`=_int` _m0_conn_a1 0)))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` (`not` (`=_int` _m3_conn_a3 0)) (`and` (`not` _m2_taint_a2) (`not` (`=_int` _m2_conn_a2 0)))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` (`not` (`=_int` _m0_conn_a0 0)) (`not` (`=_int` _m1_conn_a2 0))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` (`not` (`=_int` _m2_conn_a2 0)) (`not` (`=_int` _m3_conn_a3 0))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`not` (`=_int` _m0_conn_a0 0)))))
+(`not` (`exists_index` 'index_0 (`and` (`=_int` _m3_conn_a3 0) (Param['[Int]'][Bool] _a4_token (index2int 'index_0)))))
+(`not` (`and` (`not` (`=_int` _m1_conn_a2 0)) (`and` (`and` (`not` _m1_taint_a1) (`not` _m1_taint_a2)) (`not` (`=_int` _m1_conn_a1 0)))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` (`not` (`=_int` _m1_conn_a2 0)) (`and` (`not` _m1_taint_a2) (`not` _m3_taint_a3))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`not` (`=_int` _m1_conn_a2 0)))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`not` (`=_int` _m1_conn_a1 0)))))
+(`not` (`exists_index` 'index_0 (`and` (`not` _m3_taint_a3) (Param['[Int]'][Bool] _a4_token (index2int 'index_0)))))
+(`not` (`exists_index` 'index_0 (Param['[Int]'][Bool] _a4_token (index2int 'index_0))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` (`=_int` _m3_conn_a4 0) (`not` (`<=_int` (index2int 'index_0) 0))))))
+(`not` (`exists_index` 'index_0 (`and` (`<=_int` (index2int 'index_0) 0) (Param['[Int]'][Bool] _a4_token (index2int 'index_0)))))
+(`not` (`and` (`not` (`=_int` _m3_conn_a3 0)) (`and` (`not` (`=_int` _m1_conn_a2 0)) (`and` (`not` _m1_taint_a2) (`not` _m3_taint_a3)))))
+(`not` (`and` (`not` _m3_taint_a3) (`not` (`=_int` _m3_conn_a3 0))))
+(`not` (`and` (`not` (`=_int` _m3_conn_a4 0)) (`not` (`=_int` _m3_conn_a3 0))))
+(`not` (`exists_index` 'index_0 (`and` (`<=_int` (index2int 'index_0) 0) (Param['[Int]'][Bool] _A3 (index2int 'index_0)))))
+(`not` (`and` _m3_taint_a3 _m3_taint_a4))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`not` (`=_int` _m3_conn_a3 0)))))
+(`not` (`and` _m3_token (`not` _m3_taint_a3)))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` (`not` (`=_int` _m2_conn_a3 0)) (`not` (`=_int` _m1_conn_a1 0))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` (`not` (`=_int` _m3_conn_a4 0)) (`not` (`=_int` _m0_conn_a1 0))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a4_token (index2int 'index_0)) (`and` _m2_taint_a3 (`not` (`=_int` _m3_conn_a4 0))))))
+(`not` (`and` (`not` (`=_int` _m3_conn_a4 0)) (`and` (`and` (`not` (`=_int` _m2_conn_a2 0)) (`not` (`=_int` _m0_conn_a1 0))) (`not` (`=_int` _m3_conn_a3 0)))))
+(`not` (`and` (`not` (`=_int` _m3_conn_a4 0)) (`and` _m3_token (`not` (`=_int` _m2_conn_a3 0)))))
+(`not` (`and` (`not` (`=_int` _m3_conn_a4 0)) (`and` _m3_token (`not` (`=_int` _m0_conn_a1 0)))))
+(`not` (`and` (`not` (`=_int` _m3_conn_a4 0)) (`and` (`not` (`=_int` _m3_conn_a3 0)) (`and` (`not` _m2_taint_a2) (`not` (`=_int` _m2_conn_a2 0))))))
+(`not` (`and` (`not` (`=_int` _m3_conn_a4 0)) (`and` _m3_token (`not` (`=_int` _m0_conn_a0 0)))))
+(`not` (`and` (`not` (`=_int` _m3_conn_a4 0)) (`and` _m3_token (`not` (`=_int` _m1_conn_a1 0)))))
+Stats:
+verification time: 166.818
+z3 check time: 92.524
+generalization time: 26.377
+recursive block time: 67.478
+propagation time: 94.193
+refinement time: 0.000
+minimization models time: 20.050
+num z3 calls: 327
+number of added diagrams per frame: {0: 1, 1: 2, 2: 22, 3: 39, 4: 4, 5: 1}
+greatest number of literals in a diagram per frame: {0: 43, 1: 31, 2: 31, 3: 31, 4: 31}
+number of refinement steps: 0
+number of initial predicates: 31
+number of final predicates: 31
+max concrete size: 0
+number of predicates used in the inductive invariant: 21

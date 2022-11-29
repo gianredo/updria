@@ -1,0 +1,50 @@
+There are 3 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+minimal model of size 2 for sort index
+failed...
+CEX! Violation of the initial formula
+abstract cex
+true counterexample!
+Concrete conterexample is found!
+Stats:
+verification time: 0.469
+z3 check time: 0.120
+generalization time: 0.045
+recursive block time: 0.308
+propagation time: 0.063
+refinement time: 0.019
+minimization models time: 0.154
+num z3 calls: 11
+number of added diagrams per frame: {0: 1, 1: 2}
+greatest number of literals in a diagram per frame: {0: 3}
+number of refinement steps: 0
+number of initial predicates: 3
+number of final predicates: 0
+max concrete size: 0
+number of predicates used in the inductive invariant: 0

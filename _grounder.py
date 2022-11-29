@@ -306,8 +306,7 @@ def check_if_new_predicates(new_predicates, old_predicates_dict, varlist):
         return True
 
 
-queue = []
-visited = []
+
 def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
     '''
     this function returns a triple 
@@ -325,6 +324,8 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
             if  n > sizes[s]:
                 sizes[s] = n 
     _stats.max_concrete_size = sizes
+    queue = []
+    visited = []
     queue.append([sizes[s] for s in sizes])
     #visited list of size already done
 

@@ -1,0 +1,8 @@
+group: test_all_mcmt_no_diagrams
+platform: Linux node1 5.4.0-56-generic #62-Ubuntu SMP Mon Nov 23 19:20:19 UTC 2020 x86_64 x86_64
+timestamp: 1669745456
+time: 2022-11-29 19:10:56
+exitcode: 0
+real: 995.0
+user: 993.84
+sys: 0.23

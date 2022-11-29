@@ -1,0 +1,93 @@
+There are 7 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+Add new counter 3
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 3 for sort index
+failed...
+trying to block cex at frame 1
+minimal model of size 3 for sort index
+failed...
+CEX! Violation of the initial formula
+abstract cex
+true counterexample!
+Concrete conterexample is found!
+Stats:
+verification time: 19.608
+z3 check time: 4.539
+generalization time: 1.388
+recursive block time: 16.817
+propagation time: 2.491
+refinement time: 0.128
+minimization models time: 12.460
+num z3 calls: 29
+number of added diagrams per frame: {0: 1, 1: 1, 2: 6, 3: 1}
+greatest number of literals in a diagram per frame: {0: 15, 1: 15}
+number of refinement steps: 0
+number of initial predicates: 7
+number of final predicates: 0
+max concrete size: 0
+number of predicates used in the inductive invariant: 0

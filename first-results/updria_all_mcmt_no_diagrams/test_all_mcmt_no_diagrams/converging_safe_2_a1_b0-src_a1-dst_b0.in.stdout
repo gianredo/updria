@@ -1,0 +1,55 @@
+There are 5 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+Add new counter 3
+propagation phase...
+Proved! Inductive invariant:
+(`not` (`exists_index` 'index_0 (`not` (Param['[Int]'][Bool] _a1_token (index2int 'index_0)))))
+(`not` (`exists_index` 'index_0 (Param['[Int]'][Bool] _b0_token (index2int 'index_0))))
+(`not` (`exists_index` 'index_0 (Param['[Int]'][Bool] _b1_token (index2int 'index_0))))
+Stats:
+verification time: 0.698
+z3 check time: 0.266
+generalization time: 0.135
+recursive block time: 0.411
+propagation time: 0.191
+refinement time: 0.000
+minimization models time: 0.087
+num z3 calls: 14
+number of added diagrams per frame: {0: 1, 1: 2, 2: 2}
+greatest number of literals in a diagram per frame: {0: 11, 1: 5}
+number of refinement steps: 0
+number of initial predicates: 5
+number of final predicates: 5
+max concrete size: 0
+number of predicates used in the inductive invariant: 3

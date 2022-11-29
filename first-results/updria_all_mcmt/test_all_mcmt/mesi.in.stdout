@@ -1,0 +1,105 @@
+There are 3 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 3 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+Add new counter 3
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+minimal model of size 2 for sort index
+failed...
+CEX! Violation of the initial formula
+abstract cex
+cex blocked in size {'index': 2}
+extracting interpolants...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+minimal model of size 3 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+Add new counter 4
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+Add new counter 5
+propagation phase...
+Proved! Inductive invariant:
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`and` (`=_int` (Param['[Int]'][Int] a (index2int 'index_0)) 4) (`and` (`=_int` (Param['[Int]'][Int] a (index2int 'index_1)) 4) (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_1)) 2)))) (`not` (`=_int` (index2int 'index_0) (index2int 'index_1)))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`<=_int` (Param['[Int]'][Int] a (index2int 'index_0)) 1) (`and` (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_1)) 2)) (`not` (`=_int` (index2int 'index_0) (index2int 'index_1))))))))
+(`not` (`exists_index` 'index_0 (`and` (`and` (`and` (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_0)) 4)) (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_0)) 2))) (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_0)) 1))) (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_0)) 3)))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_1)) 3)) (`and` (`not` (`=_int` (index2int 'index_0) (index2int 'index_1))) (`and` (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_1)) 2)) (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_0)) 2))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_1)) 3)) (`and` (`not` (`=_int` (index2int 'index_0) (index2int 'index_1))) (`and` (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_1)) 2)) (`not` (`=_int` (Param['[Int]'][Int] a (index2int 'index_0)) 2))))))))
+Stats:
+verification time: 11.757
+z3 check time: 4.845
+generalization time: 5.324
+recursive block time: 7.521
+propagation time: 3.806
+refinement time: 0.014
+minimization models time: 1.060
+num z3 calls: 42
+number of added diagrams per frame: {0: 1, 1: 1, 2: 2, 3: 4, 4: 1}
+greatest number of literals in a diagram per frame: {0: 18, 1: 30, 2: 17, 3: 17}
+number of refinement steps: 1
+number of initial predicates: 3
+number of final predicates: 7
+max concrete size: 0
+number of predicates used in the inductive invariant: 7

@@ -1,0 +1,8 @@
+group: test_cubicle
+platform: Linux node3 5.4.0-56-generic #62-Ubuntu SMP Mon Nov 23 19:20:19 UTC 2020 x86_64 x86_64
+timestamp: 1669752071
+time: 2022-11-29 21:01:11
+exitcode: 0
+real: 7202.57
+user: 7201.12
+sys: 0.51

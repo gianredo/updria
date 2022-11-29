@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "updria.py", line 87, in <module>
+    main()
+  File "updria.py", line 76, in main
+    ts = parse(opts)
+  File "updria.py", line 69, in parse
+    return parser.parse(data)
+  File "/home/gredondi/src/updria/_mcmtparser.py", line 650, in parse
+    return self.parser.parse(input=data, lexer=self.lex)
+  File "/home/gredondi/.local/lib/python3.8/site-packages/ply/yacc.py", line 333, in parse
+    return self.parseopt_notrack(input, lexer, debug, tracking, tokenfunc)
+  File "/home/gredondi/.local/lib/python3.8/site-packages/ply/yacc.py", line 1201, in parseopt_notrack
+    tok = call_errorfunc(self.errorfunc, errtoken, self)
+  File "/home/gredondi/.local/lib/python3.8/site-packages/ply/yacc.py", line 192, in call_errorfunc
+    r = errorfunc(token)
+  File "/home/gredondi/src/updria/_mcmtparser.py", line 642, in p_error
+    raise Exception('Syntax error in input (line: {})! '
+Exception: Syntax error in input (line: 7)! Parser State:53 directives SMT ( SYMBOL SYMBOL : . LexToken(:,':',7,262)
+real 1.03
+user 0.20
+sys 0.03

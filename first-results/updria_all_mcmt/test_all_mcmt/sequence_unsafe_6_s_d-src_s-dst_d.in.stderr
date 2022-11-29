@@ -1,0 +1,23 @@
+Traceback (most recent call last):
+  File "updria.py", line 87, in <module>
+    main()
+  File "updria.py", line 81, in main
+    res = updria(opts, ts)
+  File "/home/gredondi/src/updria/_updria.py", line 1131, in updria
+    recblockres = measure('rec_block_time', recblock, paramts, abstract_predicates_dict,\
+  File "/home/gredondi/src/updria/_updria.py", line 108, in measure
+    return func(*args, **kwds)
+  File "/home/gredondi/src/updria/_updria.py", line 994, in recblock
+    minimize_model(s, paramts.sorts)
+  File "/home/gredondi/src/updria/_updria.py", line 821, in minimize_model
+    res = solver.check()
+  File "/home/gredondi/.local/lib/python3.8/site-packages/z3/z3.py", line 7022, in check
+    r = Z3_solver_check_assumptions(self.ctx.ref(), self.solver, num, _assumptions)
+  File "/home/gredondi/.local/lib/python3.8/site-packages/z3/z3core.py", line 3923, in Z3_solver_check_assumptions
+    _elems.Check(a0)
+  File "/home/gredondi/.local/lib/python3.8/site-packages/z3/z3core.py", line 1447, in Check
+    raise self.Exception(self.get_error_message(ctx, err))
+z3.z3types.Z3Exception: b'out of memory'
+real 2596.70
+user 2573.89
+sys 21.99

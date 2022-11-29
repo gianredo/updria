@@ -1,0 +1,225 @@
+There are 4 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+Add new counter 3
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+Add new counter 4
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+minimal model of size 2 for sort index
+failed...
+CEX! Violation of the initial formula
+abstract cex
+cex blocked in size {'index': 2}
+extracting interpolants...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+Add new counter 5
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 5
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 5
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 2 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 5
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+trying to block cex at frame 5
+blocked
+generalizing diagram...
+Add new counter 6
+propagation phase...
+Proved! Inductive invariant:
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`and` (`and` (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (`not` (Param['[Int]'][Bool] r (index2int 'index_1)))) (`not` (`=_int` (index2int 'index_0) (index2int 'index_1)))) (`not` (`<=_int` (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))) -1))) (`not` (`<=_int` 1 (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1))))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (Param['[Int]'][Bool] r (index2int 'index_0)) (`and` (Param['[Int]'][Bool] r (index2int 'index_1)) (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (Param['[Int]'][Bool] l (index2int 'index_1))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`<=_int` 1 (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1))))) (`and` (`not` (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))))) (`and` (`not` (`=_int` (Param['[Int]'][Int] t (index2int 'index_1)) 0)) (`not` (`=_int` (Param['[Int]'][Int] t (index2int 'index_0)) 0))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`<=_int` (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))) -1) (`and` (`not` (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_0)))))) (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (`not` (`=_int` (Param['[Int]'][Int] t (index2int 'index_1)) 0))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_0))))) (`and` (`not` (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))))) (`and` (`not` (`=_int` (Param['[Int]'][Int] t (index2int 'index_1)) 0)) (`and` (Param['[Int]'][Bool] l (index2int 'index_1)) (`not` (Param['[Int]'][Bool] r (index2int 'index_0))))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`<=_int` (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))) -1) (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (Param['[Int]'][Bool] l (index2int 'index_1)))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] r (index2int 'index_0)) (`not` (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_0)))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`not` (`<=_int` (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))) -1)) (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (`not` (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`not` (`<=_int` 1 (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))))) (`and` (`not` (`<=_int` (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))) -1)) (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (`not` (`=_int` (index2int 'index_0) (index2int 'index_1)))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (`<=_int` 1 (`+_int` (Param['[Int]'][Int] t (index2int 'index_0)) (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1)))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`not` (`=_int` (index2int 'index_0) (index2int 'index_1))) (`and` (`not` (`=_int` (Param['[Int]'][Int] t (index2int 'index_0)) 0)) (`and` (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (Param['[Int]'][Bool] l (index2int 'index_1))) (`not` (`=_int` (Param['[Int]'][Int] t (index2int 'index_1)) 0))))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`not` (`=_int` (index2int 'index_0) (index2int 'index_1))) (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (Param['[Int]'][Bool] l (index2int 'index_1)))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`not` (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_0)))))) (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_1))))))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] l (index2int 'index_0)) (`not` (`<=_int` 1 (`+_int` curr (`*_int` -1 (Param['[Int]'][Int] t (index2int 'index_0)))))))))
+Stats:
+verification time: 62.900
+z3 check time: 28.918
+generalization time: 26.679
+recursive block time: 36.539
+propagation time: 23.042
+refinement time: 0.021
+minimization models time: 5.516
+num z3 calls: 112
+number of added diagrams per frame: {0: 1, 1: 1, 2: 1, 3: 7, 4: 11, 5: 4}
+greatest number of literals in a diagram per frame: {0: 25, 1: 25, 2: 25, 3: 25, 4: 25}
+number of refinement steps: 1
+number of initial predicates: 4
+number of final predicates: 8
+max concrete size: 0
+number of predicates used in the inductive invariant: 9

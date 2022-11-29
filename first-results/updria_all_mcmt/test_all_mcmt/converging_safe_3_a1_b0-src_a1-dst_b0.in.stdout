@@ -1,0 +1,78 @@
+There are 7 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+Add new counter 3
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 3 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+Add new counter 4
+propagation phase...
+Proved! Inductive invariant:
+(`not` (`exists_index` 'index_0 (`not` (Param['[Int]'][Bool] _a1_token (index2int 'index_0)))))
+(`not` (`exists_index` 'index_0 (Param['[Int]'][Bool] _b0_token (index2int 'index_0))))
+(`not` (`exists_index` 'index_0 (Param['[Int]'][Bool] _b1_token (index2int 'index_0))))
+(`not` (`exists_index` 'index_0 (Param['[Int]'][Bool] _b2_token (index2int 'index_0))))
+Stats:
+verification time: 4.728
+z3 check time: 1.669
+generalization time: 0.493
+recursive block time: 3.611
+propagation time: 0.947
+refinement time: 0.000
+minimization models time: 1.930
+num z3 calls: 24
+number of added diagrams per frame: {0: 1, 1: 2, 2: 2, 3: 3}
+greatest number of literals in a diagram per frame: {0: 24, 1: 15, 2: 7}
+number of refinement steps: 0
+number of initial predicates: 7
+number of final predicates: 7
+max concrete size: 0
+number of predicates used in the inductive invariant: 4

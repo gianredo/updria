@@ -1,0 +1,168 @@
+There are 3 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+minimal model of size 2 for sort index
+failed...
+CEX! Violation of the initial formula
+abstract cex
+cex blocked in size {'index': 2}
+extracting interpolants...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+Add new counter 3
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+Add new counter 4
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 3
+minimal model of size 3 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 4 for sort index
+failed...
+trying to block cex at frame 1
+minimal model of size 4 for sort index
+failed...
+CEX! Violation of the initial formula
+abstract cex
+cex blocked in size {'index': 4}
+extracting interpolants...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 3
+minimal model of size 3 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+minimal model of size 2 for sort index
+failed...
+trying to block cex at frame 3
+minimal model of size 3 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+Add new counter 5
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 5
+blocked
+generalizing diagram...
+Add new counter 6
+propagation phase...
+Proved! Inductive invariant:
+_s_token
+(`not` _d_token)
+(`not` (`exists_index` 'index_0 (`and` (`=_int` (index2int 'index_0) -1) (`and` _d_token (`not` (Param['[Int]'][Bool] _a0_token (index2int 'index_0)))))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (`=_int` (index2int 'index_0) -1) (`and` (`=_int` (index2int 'index_1) 0) (`and` (Param['[Int]'][Bool] _a0_token (index2int 'index_0)) (`not` (Param['[Int]'][Bool] _a0_token (index2int 'index_1)))))))))
+(`not` (`exists_index` 'index_0 (`and` (`=_int` (index2int 'index_0) 0) (`and` _d_token (`not` (Param['[Int]'][Bool] _a0_token (index2int 'index_0)))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a0_token (index2int 'index_0)) (`not` (`<=_int` 0 (index2int 'index_0))))))
+(`not` (`exists_index` 'index_0 (`and` (Param['[Int]'][Bool] _a0_token (index2int 'index_0)) (`=_int` (index2int 'index_0) -1))))
+(`not` (`exists_index` 'index_0 (`exists_index` 'index_1 (`and` (Param['[Int]'][Bool] _a0_token (index2int 'index_0)) (`<=_int` (index2int 'index_0) -2)))))
+Stats:
+verification time: 586.826
+z3 check time: 353.296
+generalization time: 218.404
+recursive block time: 274.018
+propagation time: 311.249
+refinement time: 0.114
+minimization models time: 12.824
+num z3 calls: 69
+number of added diagrams per frame: {0: 1, 1: 2, 2: 2, 3: 2, 4: 7, 5: 1}
+greatest number of literals in a diagram per frame: {0: 13, 1: 164, 2: 73, 3: 23, 4: 23}
+number of refinement steps: 2
+number of initial predicates: 3
+number of final predicates: 23
+max concrete size: 0
+number of predicates used in the inductive invariant: 7

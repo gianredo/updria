@@ -1,0 +1,165 @@
+There are 4 initial predicates
+no initial cex! Entering main loop
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+Add new counter 2
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+Add new counter 3
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+minimal model of size 1 for sort index
+failed...
+CEX! Violation of the initial formula
+abstract cex
+cex blocked in size {'index': 1}
+extracting interpolants...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 1
+blocked
+generalizing diagram...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 3
+minimal model of size 1 for sort index
+failed...
+trying to block cex at frame 2
+blocked
+generalizing diagram...
+trying to block cex at frame 3
+blocked
+generalizing diagram...
+Add new counter 4
+propagation phase...
+Checking intersection between last frame and property...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+found a cti
+minimal model of size 1 for sort index
+extracting diagram...
+add cti
+trying to block cex at frame 4
+blocked
+generalizing diagram...
+Add new counter 5
+propagation phase...
+Proved! Inductive invariant:
+(`not` (`and` (`not` (`<=_int` m 1)) (`not` (`=_int` s 0))))
+(`not` (`and` (`not` (`<=_int` m 1)) (`not` (`=_int` m 0))))
+(`not` (`and` (`not` (`=_int` m 0)) (`not` (`=_int` s 0))))
+(`not` (`and` (`<=_int` e 0) (`not` (`=_int` e 0))))
+(`not` (`and` (`not` (`=_int` m 0)) (`not` (`<=_int` e 1))))
+(`not` (`and` (`and` (`not` (`<=_int` m 1)) (`not` (`=_int` m 0))) (`not` (`<=_int` e 1))))
+(`not` (`and` (`not` (`<=_int` e 0)) (`and` (`not` (`<=_int` m 1)) (`not` (`=_int` m 0)))))
+(`not` (`and` (`not` (`<=_int` e 0)) (`not` (`=_int` m 0))))
+(`not` (`and` (`not` (`=_int` e 0)) (`not` (`=_int` s 0))))
+(`not` (`and` (`not` (`=_int` e 0)) (`not` (`<=_int` e 1))))
+Stats:
+verification time: 0.955
+z3 check time: 0.300
+generalization time: 0.161
+recursive block time: 0.477
+propagation time: 0.272
+refinement time: 0.006
+minimization models time: 0.025
+num z3 calls: 62
+number of added diagrams per frame: {0: 1, 1: 1, 2: 2, 3: 10, 4: 3}
+greatest number of literals in a diagram per frame: {0: 8, 1: 8, 2: 8, 3: 8}
+number of refinement steps: 1
+number of initial predicates: 4
+number of final predicates: 8
+max concrete size: 0
+number of predicates used in the inductive invariant: 6

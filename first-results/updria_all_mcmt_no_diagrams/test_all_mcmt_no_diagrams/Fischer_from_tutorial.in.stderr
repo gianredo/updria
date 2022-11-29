@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "updria.py", line 87, in <module>
+    main()
+  File "updria.py", line 76, in main
+    ts = parse(opts)
+  File "updria.py", line 69, in parse
+    return parser.parse(data)
+  File "/home/gredondi/src/updria/_mcmtparser.py", line 650, in parse
+    return self.parser.parse(input=data, lexer=self.lex)
+  File "/home/gredondi/.local/lib/python3.8/site-packages/ply/yacc.py", line 333, in parse
+    return self.parseopt_notrack(input, lexer, debug, tracking, tokenfunc)
+  File "/home/gredondi/.local/lib/python3.8/site-packages/ply/yacc.py", line 1120, in parseopt_notrack
+    p.callable(pslice)
+  File "/home/gredondi/src/updria/_mcmtparser.py", line 392, in p_symbol_term
+    p[0] = self.var_bindings[s]
+KeyError: 'c'
+real 1.03
+user 0.19
+sys 0.04
