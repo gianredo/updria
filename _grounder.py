@@ -316,6 +316,7 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
         - a set of predicates or None
     ''' 
     global queue, visited
+    from _updria import _stats
     sizes = {s : 1 for s in paramts.sorts} 
     # take the max among cti's
     for c in cti_queue:
@@ -323,7 +324,7 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
             n = len(c.universe_dict[s])
             if  n > sizes[s]:
                 sizes[s] = n 
-    
+    _stats.max_concrete_size = sizes
     queue.append([sizes[s] for s in sizes])
     #visited list of size already done
 
@@ -372,6 +373,7 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
             if check_if_new_predicates(all_preds, predicates_dict, varlist):
                 return True, None, all_preds, varlist
             else:
+                _stats.max_concrete_size = sizes
                 sizes = increase_size(sizes)
 
         else: 
