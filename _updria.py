@@ -88,7 +88,7 @@ class Statistics:
          "number of refinement steps: %d" % self.num_ref_iterations,
          "number of initial predicates: %d" % self.num_initial_preds,
          "number of final predicates: %d" % self.num_final_preds,
-         "max concrete size: %d" % self.max_concrete_size,
+         "max concrete size: %s" % self.max_concrete_size,
          "number of predicates used in the inductive invariant: %d" % self.num_predicates_inductive
             ]
         return "\n".join(out)
