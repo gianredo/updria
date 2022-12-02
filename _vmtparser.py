@@ -299,6 +299,7 @@ def parse_vmt(opts, data):
         return rule
 
 
+    #maybe add this with an option 
     trans_rules = [add_inertia(get(rule)) for rule in trans]
     #trans_rules = [get(rule) for rule in trans]
 
