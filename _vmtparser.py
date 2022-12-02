@@ -2,7 +2,17 @@ from optparse import Option
 from _updria import *
 
 
-def parse_vmt(opts, data):                
+def parse_vmt(opts, data): 
+        
+    #some hacks for strange ic3po format...
+    data = data.replace('.action_ext:', '')
+    data = data.replace('V__fml:', '')
+    data = data.replace('V__new_loc:0', 'new')
+    data = data.replace('V__new_fml:', '')
+    data = data.replace('V__loc:', '')
+    data = data.replace('ext:', '')
+    data = data.replace('__fml:', '') 
+                   
     wenv = msat_create_env({'allow_bool_function_args': 'true'})
     res = msat_annotated_list_from_smtlib2(wenv, data)
     assert res is not None, msat_last_error_message(wenv)
@@ -289,8 +299,8 @@ def parse_vmt(opts, data):
         return rule
 
 
-    #trans_rules = [add_inertia(get(rule)) for rule in trans]
-    trans_rules = [get(rule) for rule in trans]
+    trans_rules = [add_inertia(get(rule)) for rule in trans]
+    #trans_rules = [get(rule) for rule in trans]
 
     # this is for ghost variables in ic3po
     # for rule in trans:
