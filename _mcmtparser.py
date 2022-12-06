@@ -490,9 +490,9 @@ class MCMTParser(object):
             exqvars += [QVar("i%d" % (i+n), INT) for i in range(len(qv))]
         else:
             assert not qv
-        for v in self.eevars:
-            exvars.append(v)
-            exqvars.append(QVar("ex!%s" % str(v), type_(v)))
+        # for v in self.eevars:
+        #     exvars.append(v)
+        #     exqvars.append(QVar("ex!%s" % str(v), type_(v)))
         kind, qv1, universal_guard = split_quantifier(universal_guard)
         assert kind == FORALL or not qv1
         kind, qv2, universal_update = split_quantifier(universal_update)
