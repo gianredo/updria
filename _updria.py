@@ -1180,6 +1180,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                             return VerificationResult(UNSAFE, cex)
                         else:
                             _stats.num_ref_iterations += 1
+                            print('starting refinemnt # %d' %_stats.num_ref_iterations)
                             new_preds_dict, n_abs_vars, _ = \
                                     get_abstract_predicates(new_preds, concrete_varlist)
 

@@ -32,6 +32,7 @@ class MCMTLexer(object):
         'CASE',
         'VAL',
         'SYSTEM_AXIOM',
+        'EEVAR',
         )
 
     literals = "()![]:"
@@ -49,7 +50,7 @@ class MCMTLexer(object):
         t.lexer.lineno += len(t.value)
 
     def t_comment(self, t):
-        r':\b(comment|key_search|inv_search_max_index_var|inv_search_start|dynamic_predicate_abstraction|inv_search_max_num_invariants|inv_search_max_num_cand_invariants|no_backward_simplification|index|display_accelerated_transitions|determine_bounds|eevar|variable_redundancy_test|max_transitions_number)\b.*\n'
+        r':\b(comment|key_search|inv_search_max_index_var|inv_search_start|dynamic_predicate_abstraction|inv_search_max_num_invariants|inv_search_max_num_cand_invariants|no_backward_simplification|index|display_accelerated_transitions|determine_bounds|variable_redundancy_test|max_transitions_number)\b.*\n'
         if t.value.startswith(':comment'):
             bits = t.value.split()
             if len(bits) > 2:
@@ -127,6 +128,7 @@ class MCMTParser(object):
         self.trans_univ = []
         self.axioms = []
         self.frozen = []
+        self.eevars = []
 
         self.predmap = {
             '=' : Eq,
@@ -140,6 +142,7 @@ class MCMTParser(object):
             '-' : Minus,
             '*' : Times,
             }
+        self.ufmap = {}
         self.in_lguard = False
             
         self.parser = yacc.yacc(module=self, tabmodule="exprtab", **kwds)
@@ -149,7 +152,7 @@ class MCMTParser(object):
         p[0] = p[1]
 
     def p_system(self, p):
-        "system : directives declarations rules"
+        "system : directives rules"
         if self.frozen is not None:
             self.sig += self.frozen
         self.sig += self.extra_state
@@ -190,28 +193,48 @@ class MCMTParser(object):
         pass
 
     def p_directives(self, p):
-        """directives : directives directive
+        """directives : directives directive_or_declaration
                       | empty"""
         pass
+
+    def p_directive_or_declaration(self, p):
+        """directive_or_declaration : directive
+                                    | declaration"""
+        p[0] = p[1]
 
     def p_directive(self, p):
         """directive : SMT '(' SYMBOL SYMBOL '(' SYMBOL NUMERAL NUMERAL ')' ')'
                      | SMT '(' SYMBOL SYMBOL ':' SYMBOL ')'
+                     | SMT '(' SYMBOL SYMBOL ':' ':' deftype ')'
+                     | EEVAR SYMBOL type
         """
-        if len(p) == 8:
+        if len(p) in (8, 9):
             if p[3] != 'define':
                 raise Exception("unhandled :smt command: %s" % p[3])
-            if not p[6].startswith(':'):
-                raise Exception("unhandled :smt command: %s" % p[3])
-            tp = self.type_bindings[p[6][1:]]
             name = p[4]
+            if len(p) == 8:
+                if not p[6].startswith(':'):
+                    raise Exception("unhandled :smt command: %s" % p[6])
+                tp, arity = self.type_bindings[p[6][1:]], 0
+            else:
+                tp, arity = p[7]
+            if arity > 0:
+                f = msat_declare_function(env, name, tp)
+                self.ufmap[name] = lambda *args: msat_make_uf(env, f, args)
+            else:
+                c = Var(name, tp)
+                n = Var(name + ".next", tp)
+                self.var_bindings[name] = c
+                if self.frozen is None:
+                    self.frozen = []
+                self.frozen.append((c, n))
+                self.next[name] = n
+        elif len(p) == 4:
+            name = p[2]
+            tp = p[3]
             c = Var(name, tp)
-            n = Var(name + ".next", tp)
             self.var_bindings[name] = c
-            if self.frozen is None:
-                self.frozen = []
-            self.frozen.append((c, n))
-            self.next[name] = n
+            self.eevars.append(c)
         else:
             if p[3] != 'define-type':
                 raise Exception("unhandled :smt command: %s" % p[3])
@@ -220,10 +243,35 @@ class MCMTParser(object):
                 raise Exception("unhandled type definition: %s" % p[6])
             self.type_bindings[tp] = INT
 
-    def p_declarations(self, p):
-        """declarations : declarations declaration
-                        | empty"""
-        pass
+    def p_deftype(self, p):
+        """deftype : SYMBOL
+                   | '(' SYMBOL symlist ')'
+        """
+        if len(p) == 2:
+            p[0] = (self.type_bindings[p[1]], 0)
+        elif p[2] != '->' or len(p[3]) < 2:
+            raise Exception("bad define type")
+        else:
+            ret = self.type_bindings[p[3][-1]]
+            args = [self.type_bindings[a] for a in p[3][:-1]]
+            tp = msat_get_function_type(env, args, ret)
+            p[0] = (tp, len(args))
+            
+
+    def p_symlist(self, p):
+        """symlist : symlist SYMBOL
+                   | SYMBOL
+        """
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = p[1]
+            p[0].append(p[2])
+
+    # def p_declarations(self, p):
+    #     """declarations : declarations declaration
+    #                     | empty"""
+    #     pass
 
     def p_declaration(self, p):
         """declaration : local_decl
@@ -362,29 +410,33 @@ class MCMTParser(object):
             p[0] = p[1]
         else:
             f = p[2]
-            if f == 'and':
-                p[0] = And(*p[3])
-            elif f == 'or':
-                p[0] = Or(*p[3])
-            elif f == '=>':
-                p[0] = Implies(*p[3])
-            elif len(p[3]) == 1:
-                if f == 'not':
-                    p[0] = Not(p[3][0])
-                elif f == "+":
-                    p[0] = p[3][0]
-                elif f == "-":
-                    p[0] = Times(Int(-1), p[3][0])
-                else:
-                    raise Exception("unhandled function: %s" % f)
-            elif len(p[3]) == 2:
-                func = self.predmap.get(f, self.funmap.get(f))
-                if not func:
-                    raise Exception("unhandled function: %s" % f)
-                else:
-                    p[0] = func(p[3][0], p[3][1])
+            func = self.ufmap.get(f)
+            if func is not None:
+                p[0] = func(*p[3])
             else:
-                raise Exception("unhandled function: %s" % f)
+                if f == 'and':
+                    p[0] = And(*p[3])
+                elif f == 'or':
+                    p[0] = Or(*p[3])
+                elif f == '=>':
+                    p[0] = Implies(*p[3])
+                elif len(p[3]) == 1:
+                    if f == 'not':
+                        p[0] = Not(p[3][0])
+                    elif f == "+":
+                        p[0] = p[3][0]
+                    elif f == "-":
+                        p[0] = Times(Int(-1), p[3][0])
+                    else:
+                        raise Exception("unhandled function: %s" % f)
+                elif len(p[3]) == 2:
+                    func = self.predmap.get(f, self.funmap.get(f))
+                    if not func:
+                        raise Exception("unhandled function: %s" % f)
+                    else:
+                        p[0] = func(p[3][0], p[3][1])
+                else:
+                    raise Exception("unhandled function: %s" % f)
 
     def p_symbol_term(self, p):
         "symbol_term : SYMBOL"
@@ -438,6 +490,9 @@ class MCMTParser(object):
             exqvars += [QVar("i%d" % (i+n), INT) for i in range(len(qv))]
         else:
             assert not qv
+        for v in self.eevars:
+            exvars.append(v)
+            exqvars.append(QVar("ex!%s" % str(v), type_(v)))
         kind, qv1, universal_guard = split_quantifier(universal_guard)
         assert kind == FORALL or not qv1
         kind, qv2, universal_update = split_quantifier(universal_update)
