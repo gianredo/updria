@@ -23,13 +23,14 @@ class Options:
         self.vmt_property = 0
         self.input_language = 'vmt'
         self.use_diagram_constraint = True
-
+        self.abstract_index = False
 
     def __str__(self):
         return "\n".join(sorted([
             "vmt_property = %s" % self.vmt_property,
             "input_language = %s " % self.input_language,
             "use_diagram_constraint = %s " %self.use_diagram_constraint,
+            "abstract_index = %s " %self.abstract_index
             ]))
 # end of class Options
 
@@ -44,6 +45,7 @@ def getopts():
     p.add_argument('infile', nargs='?')
     p.add_argument('-l', '--input-language',
                    choices=['vmt', 'mcmt'])
+    add_flag('abstract-index')
     opts = Options()
     p.parse_args(namespace=opts)
     return opts
@@ -402,28 +404,64 @@ cti_queue = []
 frame_coutner = 0
 
 
-def get_all_constants(paramts):
+def get_index_signature(paramts : ParametricTransitionSystem):
+    '''
+    from the formulae defining the system, this function gets
+    - the set of constants of index sorts
+    - the set of functions among index vars (domain and codomain are all indexes)
+    - predicates among index vars (boolean functions and domain all indexes)
+    (there are not abstracted in the IA)
+    '''
+
     all_formulae = [paramts.init, paramts.prop] + paramts.trans_rules + paramts.axioms
     all_constants = set()
-    #all_functions = set()
+    all_preds = set()
+    all_functions = set()
     nextvars = set(t[1] for t in paramts.statevars).union(t[1] for t in paramts.frozenvars)
     def get_symbols(env, term, pre):
         nonlocal all_constants
         if msat_term_is_constant(env, term) and msat_type_repr(type_(term)) in paramts.sorts:
             if term not in nextvars:
                 all_constants.add(term)   
-           
+        
+        if msat_term_is_uf(env, term):
+            d = msat_term_get_decl(term)
+            if msat_decl_id(d) not in _param_read_funs:
+                rettp = msat_decl_get_return_type(d)
+                if msat_type_equals(rettp, BOOL):
+                    all_preds.add(d)
+                elif msat_type_repr(rettp) in paramts.sorts:
+                    no_theory_flag = True
+                    ar = msat_decl_get_arity(d)
+                    for i in range(ar):
+                        argtp = msat_decl_get_arg_type(d, i)
+                        if msat_type_repr(argtp) not in paramts.sorts:
+                            no_theory_flag = False
+                            break
+                    if no_theory_flag:
+                        all_functions.add(d)
         return MSAT_VISIT_PROCESS  
+    
     for formula in all_formulae:
         msat_visit_term(env, formula, get_symbols)   
-    return sorted(all_constants, key=msat_term_id)
+    
+    all_constants = sorted(all_constants, key=msat_term_id)
+    # for x in all_constants:
+    #     print(x)
+    all_functions = sorted(all_functions, key=msat_decl_id)
+    # for x in all_functions:
+    #     print(msat_decl_get_name(x))
+    all_preds = sorted(all_preds, key=msat_decl_id)
+    # for x in all_preds:
+    #     print(msat_decl_get_name(x))
+    return all_constants, all_functions, all_preds
 
 
-def find_initial_predicates(sorts, init_formula, prop):
+def find_initial_predicates(opts, sorts, init_formula, prop):
     '''
     this function mines predicates from the initial formula and the proposition
-    equalities among index vars are ignored
-     - add option to ignore also equalities among constants?
+    equalities of index sorts, predicates of index sorts are ignored
+    also booleans
 
     '''
     predicates = set()
@@ -432,28 +470,32 @@ def find_initial_predicates(sorts, init_formula, prop):
         nonlocal predicates
         if not pre:
             if msat_term_is_atom(env, t) and not msat_term_is_quantifier(env, t):
-                #equalities
+                #equalities among index terms
                 if msat_term_is_equal(env, t) and msat_type_repr(type_(arg(t, 0))) in sorts:
-                    arg_1 = msat_term_get_arg(t, 0)
-                    arg_2 = msat_term_get_arg(t, 1)
-                    if is_qvar(arg_1) and is_qvar(arg_2):
-                        #equality among index variables
-                        pass
-                    else:
-                        predicates.add(t)
+                    pass
 
-                # #we could skip this and simply considering all index predicates
-                # #maybe consider using this with an option
-                # elif msat_term_is_uf(env, t):
-                #     d = msat_term_get_decl(d)
-                #     index_sort_flag = False
-                #     # for i in range(msat_decl_get_arity(d)):
-                #     #     if msat_type_repr(msat_decl_get_arg_type(d, i)) in sorts:
-                #     #         index_sort_flag = True
+                # we ignore uf if the flag abstract_index is false
+                if not opts.abstract_index:
+                    if msat_term_is_uf(env, t):
+                        d = msat_term_get_decl(t)
+                        if msat_decl_id(d) in _param_read_funs:
+                            #in this case t is of the form (param name index1 ... indexn)
+                            #and param is a boolean (otherwise t would not be an atom), thus we can skip
+                            pass
+                        else:
+                            # lets see if the predicate is all among index vars
+                            theory_sort_flag = False
+                            for i in range(msat_decl_get_arity(d)):
+                                if msat_type_repr(msat_decl_get_arg_type(d, i)) not in sorts:
+                                    theory_sort_flag = True
 
-                #     if not index_sort_flag:
-                #         predicates.add(t)
-
+                            if theory_sort_flag:
+                                predicates.add(t)
+                
+                # boolean constants
+                elif msat_term_is_constant(env, t):
+                    pass
+                
                 else:
                     predicates.add(t)
 
@@ -470,6 +512,7 @@ def find_initial_predicates(sorts, init_formula, prop):
 def remove_duplicates(predicates, varlist = None):
     '''
     we rewrite index variables in predicates with qvars named '<type>_<position>' where position
+    is given by the msat_term_id ordering
     '''
     norm_predicates = set()
     norm_dict = {}
@@ -538,32 +581,37 @@ def substitute_index_predicates(formula, abstract_predicates_dict, norm_dict):
     '''
     we substitute the predicates in the initial formula and in the property
     first, we substitute predicates without idx variables
-    then, we look at the norm_dictionary and
-    we use norm_dict to remembed the original predicates which were normalizing via a renaming of the index var
+    then, we look at the norm_dictionary to discover the original variables
+    and do the substitution with a proper renaming
+    (not sure if it is the best way!!!)
     '''
     hat_formula = formula
     for p in abstract_predicates_dict:
         idx_vars = get_free_vars(p)
         if not idx_vars:
             hat_formula = substitute(hat_formula, [p], [abstract_predicates_dict[p]])
-    for old_p in norm_dict:
-        for p in abstract_predicates_dict:
-            if norm_dict[old_p] == p:
-                #look for a unifier i.e. a substitution sigma such that
-                # p [sigma] = old_p
-                idx_vars = get_free_vars(p)
-                for subs in itertools.product(get_free_vars(old_p), repeat=len(idx_vars)):
-                    if all([msat_type_equals(type_(x), type_(y)) for x, y in zip(idx_vars, subs)]):
-                        if substitute(p, idx_vars, subs) == old_p:
-                            hat_formula = substitute(hat_formula, [old_p], \
-                            [substitute(abstract_predicates_dict[p], idx_vars, subs)])
-                            #print(msat_last_error_message(env))
-                            break
+        else:
+            for old_p in norm_dict:
+                for p in abstract_predicates_dict:
+                    if norm_dict[old_p] == p:
+                        #look for a unifier i.e. a substitution sigma such that
+                        # p [sigma] = old_p
+                        idx_vars = get_free_vars(p)
+                        for subs in itertools.product(get_free_vars(old_p), repeat=len(idx_vars)):
+                            if all([msat_type_equals(type_(x), type_(y)) for x, y in zip(idx_vars, subs)]):
+                                if substitute(p, idx_vars, subs) == old_p:
+                                    hat_formula = substitute(hat_formula, [old_p], \
+                                    [substitute(abstract_predicates_dict[p], idx_vars, subs)])
+                                    #print(msat_last_error_message(env))
+                                    break
 
     return hat_formula
 
 
 def get_h_formula(abstract_predicates):
+    '''
+    h formula to connect abstract predicates with old ones
+    '''
     h = And(*[ Iff(p, abstract_predicates[p]) for p in abstract_predicates])
     for var in get_free_vars(h):
         h = Forall(var, h)
@@ -635,13 +683,16 @@ def convert_predicate(env, p):
                     # this is a predicate
 
                     # HACK: REPLACEING '|' with '\|'
-                    # To obtain the same name as mathsat predicate
-
+                    # To obtain the same name as the mathsat predicate
                     z3_fun = z3.Function(name(term).replace('|', '\|'), \
                         [convert_type(env, type_(arg(term, i))) for i in range(ar)] \
                              + [convert_type(env, msat_decl_get_return_type(d))])
                     z3_atom = z3_fun([cache[arg(term, i)] for i in range(ar)])
                     return MSAT_VISIT_ABORT
+            
+            elif msat_term_is_equal(env, term):
+                z3_atom = cache[arg(term, 0)] == cache[arg(term, 1)]
+            
             else:
                 raise NotSupportedErr('not supported translation for %s' %(smt2(term)))
 
@@ -652,16 +703,24 @@ def convert_predicate(env, p):
     return z3_atom
 
 
-def extract_diagram(constants, predicates, model, sort_names):
+def extract_diagram(statevars, index_signature, abs_predicates, model, sort_names):
     '''
     takes a z3 model and return a msat formula
     which is the diagram of the model
+    in this function I use an hack for z3 evaluation which is not great:
+    if m is a z3 model and t is a term/predicates, to see whether the model evaluate t to something, 
+    I test if str(m.eval(t)) == t - if the latter is true, t is not evaluated
+
+    another possibilty is add the flag model_completion = True, which evaluate everything to some 
+    default value. however, this would produce unnecessary large
+
     '''
     # for every sort, take the universe of that sort in the model
     universes = {s : [] for s in sort_names}
     for sort in sort_names:
         if model.get_universe(convert_type(env, mksort(sort))):
             universes[sort] = model.get_universe(convert_type(env, mksort(sort)))
+    
     # create one msat variable for each element in universe
     # this will be existentially quantified in the diagrm
     ex_vars_dict = { s : [QVar(str(x), mksort(s)) \
@@ -669,27 +728,36 @@ def extract_diagram(constants, predicates, model, sort_names):
     #impose that they are all different
     diff_constraint = {s : Alldiff(ex_vars_dict[s]) for s in sort_names}
 
-    # TODO!!
-    # for all constant symbol c of index sort (pass as an argument)
-    # for all var in universe v of index sort
-    # if c = v is true in the z3 model
-    # compute c = v; otherwise c != v
+    #get the index signature
+    index_constants, index_functions, index_predicates = index_signature
+
+    # start with constants
     eq_constraint = []
-    for c in constants:
+    # for each constant in the signature, for each v in the universe, 
+    #  add c = v if it is true in the model, or c != v otherwise
+    for c in index_constants:
         s = msat_type_repr(type_(c))
         z3_c = z3.Const(str(c), convert_type(env, type_(c)))
         for v in universes[s]:
-            if model.eval(z3_c == v):
-                eq_constraint.append(Eq(c, QVar(str(v), mksort(s))))
-            else:
-                eq_constraint.append(Not(Eq(c, QVar(str(v), mksort(s)))))
+            #check if the constant is in the model
+            # hack... idk
+            if str(model.eval(z3_c)) != str(z3_c):
+                if bool(model.eval(z3_c == v)):
+                    eq_constraint.append(Eq(c, QVar(str(v), mksort(s))))
+                else:
+                    eq_constraint.append(Not(Eq(c, QVar(str(v), mksort(s)))))
 
     eq_constraint = And(*eq_constraint)
 
-    # compute the values of each predicate
+
+    # compute the values of each predicate. 
+    # we have both predicates in the index signature (original predicates)
+    # and indexed predicates of the abstraction
+
     predicates_constraint = TRUE()
-    for p in predicates:
-        #replace free vars with consant variables
+    # let's start with index predicates in the abstraction
+    for p in abs_predicates:
+        #replace free vars with constant variables (just needed to convert in z3 predicates)
         renaming_dict = {a : Var(smt2(a), type_(a)) for a in get_free_vars(p)}
         p = substitute(p, list(renaming_dict), list(renaming_dict.values()))
         z3_predicate = convert_predicate(env, p)
@@ -698,7 +766,7 @@ def extract_diagram(constants, predicates, model, sort_names):
         if ar == 0:
             #arity 0 so the predicate is a boolean constant
             try:
-                if model.eval(z3_predicate):
+                if bool(model.eval(z3_predicate)):
                     predicates_constraint = And(predicates_constraint, p)
                 else:
                     predicates_constraint = And(predicates_constraint, Not(p))
@@ -710,38 +778,153 @@ def extract_diagram(constants, predicates, model, sort_names):
             assert ar > 0
             #compute all possible substitution
             for vars in itertools.product(*[universes[msat_type_repr(type_(arg(p, i)))] for i in range(ar)]):
-                # print('substitution')
-                # print(vars)
-
-                #z3 ground predicate
                 ground = z3.substitute(z3_predicate, *zip(z3_vars, vars))
-                # print('after substitution')
-                # print(ground)
-
                 msat_ground = substitute(p, list(renaming_dict.values()), [QVar(str(x), mksort(str(x.sort()))) for x in vars])
-                #print(msat_ground)
-
-                #again exception
                 try:
-                    if model.eval(ground):
+                    if bool(model.eval(ground)):
                         predicates_constraint = And(predicates_constraint, msat_ground)
                     else:
                         predicates_constraint = And(predicates_constraint, Not(msat_ground))
 
                 except z3.z3types.Z3Exception as Err:
                     pass
+    
+    #index predicates in the signature
+    for p in index_predicates:
+        ar = msat_decl_get_arity(p)       
+        assert ar > 0
+        for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(p, i))] for i in range(ar)]):    
+            msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+            msat_ground = msat_make_uf(env, p, msat_vars)
+            ground = convert_predicate(env, msat_ground)
+            z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
+            ground = z3.substitute(ground, *zip(z3_vars, vars))
+            msat_ground = msat_make_uf(env, p, [QVar(str(x), mksort(str(x.sort()))) for x in vars])
+            try:
+                if bool(model.eval(ground)):
+                    predicates_constraint = And(predicates_constraint, msat_ground)
+                else:
+                    predicates_constraint = And(predicates_constraint, Not(msat_ground))
+
+            except z3.z3types.Z3Exception as Err:
+                pass
+
+
+    # should add constrains of the form f(i) = j for all possible permutation of i, j
+    for x in index_functions:
+        ar = msat_decl_get_arity(x)
+        for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(x, i))] \
+            for i in range(ar)]):
+            msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+            rettp = msat_decl_get_return_type(x)
+            for v in universes[msat_type_repr(rettp)]:
+                msat_ground = Eq(msat_make_uf(env, x, msat_vars), Var(str(v), mksort(str(v.sort()))))
+                ground = convert_predicate(env, msat_ground)
+                z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
+                ground = z3.substitute(ground, *zip(z3_vars, vars))
+                msat_ground = Eq(msat_make_uf(env, x, [QVar(str(x), mksort(str(x.sort()))) \
+                    for x in vars]), Var(str(v), mksort(str(v.sort()))))
+                try:
+                    # terrible hack 
+                    if str(model.eval(ground)) != str(ground):
+                        if model.eval(ground):
+                            predicates_constraint = And(predicates_constraint, msat_ground)
+                        else:
+                            predicates_constraint = And(predicates_constraint, Not(msat_ground))
+                    else:
+                        pass
+
+                except z3.z3types.Z3Exception as Err:
+                    pass
+
+
+    statevars_constraint = TRUE()
+
+    #we compute differently the values of statevars of boolean element type
+    #i.e. boolean constants in the signature or boolean functions
+    for a, _ in statevars:
+        if is_param(a) and msat_type_repr(type_(a)) == '[Bool]':
+            #boolean functions
+            #check if the evaluation is in the model
+            #check the evaluation of the 'name' of the function
+            z3_const = z3.Const('%s' %str(a), convert_type(env, type_(a)))
+            try:
+                # if the constant has an evaluation in the model, then we compute the constraint
+                # ugly way of comparing but idk
+                if str(model.eval(z3_const)) != str(z3_const):
+                    d = _param_map[str(a)][1] 
+                    ar = msat_decl_get_arity(d)
+                    for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(d, i))] for i in range(1, ar)]):
+                        msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+                        msat_ground = ParamVal(a, msat_vars)
+                        ground = convert_predicate(env, msat_ground)
+                        z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
+                        ground = z3.substitute(ground, *zip(z3_vars, vars))
+                        msat_ground = ParamVal(a, [QVar(str(x), mksort(str(x.sort()))) for x in vars])
+                        if bool(model.eval(ground)):
+                            statevars_constraint = And(statevars_constraint, msat_ground)
+                        else:
+                            statevars_constraint = And(statevars_constraint, Not(msat_ground))
+            except z3.z3types.Z3Exception as Err:
+                pass
+
+        #statevars with index type 
+        elif is_param(a) and msat_type_repr(msat_decl_get_return_type(_param_map[name(a)][1])) in sort_names:
+                    d = _param_map[str(a)][1] 
+                    ar = msat_decl_get_arity(d)
+                    for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(d, i))] for i in range(1, ar)]):
+                        msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+                        msat_qvars = [QVar(str(x), mksort(str(x.sort()))) for x in vars]
+                        rettp = msat_decl_get_return_type(d)
+                        for v in universes[msat_type_repr(rettp)]:
+                            msat_ground = Eq(ParamVal(a, msat_vars), Var(str(v), mksort(str(v.sort()))))
+                            ground = convert_predicate(env, msat_ground)
+                            z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
+                            ground = z3.substitute(ground, *zip(z3_vars, vars))
+                            msat_ground = Eq(ParamVal(a, msat_qvars), Var(str(v), mksort(str(v.sort()))))
+                            try:
+                                # terrible hack 
+                                if str(model.eval(ground)) != str(ground):
+                                    if model.eval(ground):
+                                        predicates_constraint = And(predicates_constraint, msat_ground)
+                                    else:
+                                        predicates_constraint = And(predicates_constraint, Not(msat_ground))
+                                else:
+                                    pass
+
+                            except z3.z3types.Z3Exception as Err:
+                                pass
+
+        # variable can be a boolean constant (not a function)        
+        elif msat_type_equals(type_(a), BOOL):
+            z3_predicate = convert_predicate(env, a)
+            try:
+                if bool(model.eval(z3_predicate)):
+                    statevars_constraint = And(statevars_constraint, a)
+                else:
+                    statevars_constraint = And(statevars_constraint, Not(a))
+
+            except z3.z3types.Z3Exception as Err:
+                pass
+
 
     #make the diagram
-    diagram = And(eq_constraint, And(*[diff_constraint[s] for s in diff_constraint], predicates_constraint))
+    diagram = And(eq_constraint, And(*[diff_constraint[s] for s in diff_constraint], \
+        predicates_constraint, statevars_constraint))
     # compute existential clousure
     for s in sort_names:
         for v in ex_vars_dict[s]:
             diagram = Exists(v, diagram)
-
+    
     return diagram, universes
 
 
 def get_next_abstract_formula(formula, abs_vars):
+    '''
+    function to make substitution 
+    from a formula using (x i1 ... in) to (x.next i1 ... in)
+    
+    '''
     cache = {}
 
     #save i1...in
@@ -780,25 +963,36 @@ def get_next_abstract_formula(formula, abs_vars):
 def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
     predicates_dict, H_formula, abs_init, initial_constr : Bool = False):
 
+    '''
+    this function gets the relative inductivness check with IA
+    initial constraint is used for generalization of diagrams 
+    
+    '''
+
     #we need H_formula for next variables
     #we substitute every (p i1 ... in) with (p.next i1 ... in)
     H_formula_next = get_next_abstract_formula(H_formula, abs_vars)
     H_formula_next = substitute(H_formula_next, [s[0] for s in paramts.statevars], [s[1] for s in paramts.statevars])
 
+    # same for initial formula of next (used in the generalization)
     next_abs_init = get_next_abstract_formula(abs_init, abs_vars)
+    next_abs_init = substitute(next_abs_init, [s[0] for s in paramts.statevars], [s[1] for s in paramts.statevars])
 
     def barvar(v):
         return Var(name(v) + ".bar", type_(v))
 
-    #we need a dublicate (bar version) of the state vars
-    bar_statevars = [ (barvar(a), barvar(b)) for a, b in paramts.statevars]
-    predicates_bar_c = [substitute(p, [c[0] for c in paramts.statevars], [bc[0] for bc in bar_statevars]) \
+    #we need a dublicate (bar version) of the non boolean state vars
+    non_bool_vars = [x for x in paramts.statevars if (msat_type_repr(type_(x[0])) != '[Bool]' \
+        and not msat_type_equals(type_(x[0]), BOOL) and msat_type_repr(type_(x[0])) not in paramts.sorts) ]
+    bar_statevars = [ (barvar(a), barvar(b)) for a, b in non_bool_vars]
+    
+    predicates_bar_c = [substitute(p, [c[0] for c in non_bool_vars], [bc[0] for bc in bar_statevars]) \
          for p in predicates_dict]
 
-    predicates_next = [substitute(p, [c[0] for c in paramts.statevars], [c[1] for c in paramts.statevars]) \
+    predicates_next = [substitute(p, [c[0] for c in non_bool_vars], [c[1] for c in non_bool_vars]) \
          for p in predicates_dict]
 
-    predicates_bar_n = [substitute(p, [c[0] for c in paramts.statevars], [bc[1] for bc in bar_statevars]) \
+    predicates_bar_n = [substitute(p, [c[0] for c in non_bool_vars], [bc[1] for bc in bar_statevars]) \
          for p in predicates_dict]
 
     EQ_formula_1 = And(*[Iff(p[0], p[1]) for p in zip(predicates_dict, predicates_bar_c)])
@@ -810,13 +1004,13 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
         EQ_formula_2 = Forall(var, EQ_formula_2)
 
     # abstract transition formula
-    t_bar = [substitute(t, [c[0] for c in paramts.statevars], [c[0] for c in bar_statevars]) for t in paramts.trans_rules]
-    t_bar = [substitute(t, [c[1] for c in paramts.statevars], [c[1] for c in bar_statevars]) for t in t_bar]
+    t_bar = [substitute(t, [c[0] for c in non_bool_vars], [c[0] for c in bar_statevars]) for t in paramts.trans_rules]
+    t_bar = [substitute(t, [c[1] for c in non_bool_vars], [c[1] for c in bar_statevars]) for t in t_bar]
     t_bar = Or(*t_bar)
 
     #next diagram
     next_diagram = get_next_abstract_formula(diagram, abs_vars)
-
+    next_diagram = substitute(next_diagram, [c[0] for c in paramts.statevars], [c[1] for c in paramts.statevars])
     # print(next_diagram)
     # print(H_formula_next)
     # print(And(*frame))
@@ -825,8 +1019,12 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
     # print(next_diagram)
     # print(EQ_formula_1)
     # print(EQ_formula_2)
+    axioms = And(*paramts.axioms)
+    axioms = substitute(axioms, [c[0] for c in non_bool_vars], [c[0] for c in bar_statevars])
 
-    formula = And(And(*frame), t_bar, H_formula, H_formula_next, Not(diagram), EQ_formula_1, EQ_formula_2)
+
+
+    formula = And(And(*frame), Not(diagram), axioms, t_bar, H_formula, H_formula_next, EQ_formula_1, EQ_formula_2)
     if initial_constr:
         formula = Or(formula, next_abs_init)
 
@@ -934,10 +1132,17 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars, frame, n_diagram,\
          predicates_dict, H_formula, hat_init, True)
 
-    s2.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
-
+    s2.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'ALL', True))
     is_sat = s2.check(z3_alits)
-    assert is_sat == z3.unsat
+    try:
+        assert is_sat == z3.unsat
+    except AssertionError as Err:
+        print('error in unsat core')
+        print(s2.model())
+        print(diagram)
+        print(n_diagram)
+        raise Err
+
     core = minimize_core(s2)
 
     s2.reset()
@@ -995,7 +1200,7 @@ def recblock(paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_f
              cti.diagram, predicates_dict, H_formula, hat_init)
 
         s = Solver()
-        s.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'UFLIA', True))
+        s.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'ALL', True))
         # for x in predicates_dict:
         #     print(x)
         _stats.num_z3_calls +=1
@@ -1022,7 +1227,7 @@ def recblock(paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_f
             with Timer('minimizing_model_time'):
                 minimize_model(s, paramts.sorts)
             model = s.model()
-            n_diagram, universe_dict = extract_diagram(index_constants, predicates_dict.values(), model, paramts.sorts)
+            n_diagram, universe_dict = extract_diagram(paramts.statevars, index_constants, predicates_dict.values(), model, paramts.sorts)
             s.reset()
             print('failed...')
             cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1))
@@ -1092,7 +1297,7 @@ def print_cex(cex):
 
 def updria(opts, paramts : ParametricTransitionSystem):
     global frame_sequence, cti_queue, frame_counter
-    predicates = find_initial_predicates(paramts.sorts, paramts.init, paramts.prop)
+    predicates = find_initial_predicates(opts, paramts.sorts, paramts.init, paramts.prop)
     abstract_predicates_dict, abs_vars, norm_dict  = get_abstract_predicates(predicates)
     _stats.num_initial_preds = len([x for x in abstract_predicates_dict])
     print('There are %d initial predicates' %_stats.num_initial_preds)
@@ -1107,9 +1312,9 @@ def updria(opts, paramts : ParametricTransitionSystem):
     # print(hat_init)
     # print(hat_prop)
     H_formula = get_h_formula(abstract_predicates_dict)
-    # print(H_formula)
+    #print(H_formula)
 
-    index_constants = get_all_constants(paramts)
+    index_signature = get_index_signature(paramts)
     # here we switch to z3. probabily using string is inefficent
     # we should use convertor (pystm?) from mathsat to z3
     # convertor is avaible only for predicates
@@ -1147,7 +1352,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                 minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
-            diagram, universe_dict = extract_diagram(index_constants, abstract_predicates_dict.values(), \
+            diagram, universe_dict = extract_diagram(paramts.statevars, index_signature, abstract_predicates_dict.values(), \
                 model, paramts.sorts)
             s.reset()
             # Aadd a cti in the cti_queue
@@ -1158,7 +1363,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
             while cti_queue:
                 curr =  cti_queue[-1]
                 #recursevily block the cex
-                recblockres = measure('rec_block_time', recblock, paramts, index_constants, abstract_predicates_dict,\
+                recblockres = measure('rec_block_time', recblock, paramts, index_signature, abstract_predicates_dict,\
                      abs_vars, curr, H_formula, hat_init)
                 if not recblockres:
                     # abstract coutnerexample
@@ -1198,7 +1403,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
             last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
             s.reset()
             _stats.num_z3_calls += 1
-            s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'UFLIA', True))
+            s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'ALL', True))
             res = measure('z3_time', s.check)
 
         frame_counter += 1
@@ -1217,7 +1422,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                             Not(d), abstract_predicates_dict, H_formula, hat_init)
                         _stats.num_z3_calls += 1
                         s1 = Solver()
-                        s1.from_string(msat_to_smtlib2_ext(env, f, 'UFLIA', True))
+                        s1.from_string(msat_to_smtlib2_ext(env, f, 'ALL', True))
                         res = measure('z3_time', s1.check)
                         if res == z3.unsat:
                             frame_sequence[i+1].append(d)
@@ -1233,7 +1438,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     #let's count the predicates in the invariant
                     actual_predicates = set()
                     for f in frame_sequence[i]:
-                        predicates = find_initial_predicates(paramts.sorts, f, TRUE())
+                        predicates = find_initial_predicates(opts, paramts.sorts, f, TRUE())
                         norm_predicates, _ = remove_duplicates(predicates)
                         actual_predicates = actual_predicates.union(norm_predicates)
                     _stats.num_predicates_inductive = len(actual_predicates)
