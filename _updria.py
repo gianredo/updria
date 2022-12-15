@@ -7,7 +7,7 @@ import random
 import sys
 from collections import namedtuple
 from contextlib import contextmanager
-from typing import Dict, List, NamedTuple
+from typing import *
 from xml.dom import NotSupportedErr
 import time
 
@@ -770,7 +770,7 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
                     predicates_constraint = And(predicates_constraint, p)
                 else:
                     predicates_constraint = And(predicates_constraint, Not(p))
-            except z3.z3types.Z3Exception as Err:
+            except z3types.Z3Exception as Err:
                 #the exception is to catch if we evalue predicate not in the model
                 #not sure this is the proper way
                 pass
@@ -786,7 +786,7 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
                     else:
                         predicates_constraint = And(predicates_constraint, Not(msat_ground))
 
-                except z3.z3types.Z3Exception as Err:
+                except z3types.Z3Exception as Err:
                     pass
     
     #index predicates in the signature
@@ -806,7 +806,7 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
                 else:
                     predicates_constraint = And(predicates_constraint, Not(msat_ground))
 
-            except z3.z3types.Z3Exception as Err:
+            except z3types.Z3Exception as Err:
                 pass
 
 
@@ -834,7 +834,7 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
                     else:
                         pass
 
-                except z3.z3types.Z3Exception as Err:
+                except z3types.Z3Exception as Err:
                     pass
 
 
@@ -865,7 +865,7 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
                             statevars_constraint = And(statevars_constraint, msat_ground)
                         else:
                             statevars_constraint = And(statevars_constraint, Not(msat_ground))
-            except z3.z3types.Z3Exception as Err:
+            except z3types.Z3Exception as Err:
                 pass
 
         #statevars with index type 
@@ -892,7 +892,7 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
                                 else:
                                     pass
 
-                            except z3.z3types.Z3Exception as Err:
+                            except z3types.Z3Exception as Err:
                                 pass
 
         # variable can be a boolean constant (not a function)        
@@ -904,7 +904,7 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
                 else:
                     statevars_constraint = And(statevars_constraint, Not(a))
 
-            except z3.z3types.Z3Exception as Err:
+            except z3types.Z3Exception as Err:
                 pass
 
 
@@ -961,7 +961,7 @@ def get_next_abstract_formula(formula, abs_vars):
 
 
 def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
-    predicates_dict, H_formula, abs_init, initial_constr : Bool = False):
+    predicates_dict, H_formula, abs_init, initial_constr = False):
 
     '''
     this function gets the relative inductivness check with IA
@@ -1044,7 +1044,7 @@ def minimize_model(solver, sorts):
         for size in itertools.count(1):
             f = get_size_constraint(s, size)
             solver.push()
-            solver.from_string(msat_to_smtlib2_ext(env, f, 'ALL', True))
+            solver.from_string(msat_to_smtlib2_term(env, f))
             res = solver.check()
             if res == z3.sat:
                 print('minimal model of size %d for sort %s' %(size, s))
@@ -1185,7 +1185,7 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     return g_diagram
 
 
-def recblock(paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init) -> Bool :
+def recblock(paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init):
     if cti.frame_number == 0:
         print('CEX! Violation of the initial formula')
         return False
@@ -1342,6 +1342,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
         last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
         #pass it to z3
         _stats.num_z3_calls += 1
+        s = z3.Solver()
         s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'ALL', True))
         print('Checking intersection between last frame and property...')
         res = measure('z3_time', s.check)
@@ -1401,7 +1402,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
 
             # blocked cex, recompute last formula to see wheter there are more models
             last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
-            s.reset()
+            s = Solver()
             _stats.num_z3_calls += 1
             s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'ALL', True))
             res = measure('z3_time', s.check)
