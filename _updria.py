@@ -1044,13 +1044,14 @@ def minimize_model(solver, sorts):
         for size in itertools.count(1):
             f = get_size_constraint(s, size)
             solver.push()
-            solver.from_string(msat_to_smtlib2_term(env, f))
+            string = msat_to_smtlib2_ext(env, f, 'ALL', True)
+            solver.from_string(string)
             res = solver.check()
+            solver.pop()
             if res == z3.sat:
                 print('minimal model of size %d for sort %s' %(size, s))
                 break
-            else:
-                solver.pop()
+
 
 
 def get_id(x):
@@ -1224,8 +1225,8 @@ def recblock(paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_f
             return True
 
         elif res == z3.sat:
-            with Timer('minimizing_model_time'):
-                minimize_model(s, paramts.sorts)
+            # with Timer('minimizing_model_time'):
+            #     minimize_model(s, paramts.sorts)
             model = s.model()
             n_diagram, universe_dict = extract_diagram(paramts.statevars, index_constants, predicates_dict.values(), model, paramts.sorts)
             s.reset()
@@ -1349,8 +1350,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
         while res == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
-            with Timer('minimizing_model_time'):
-                minimize_model(s, paramts.sorts)
+            # with Timer('minimizing_model_time'):
+            #     minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(paramts.statevars, index_signature, abstract_predicates_dict.values(), \
