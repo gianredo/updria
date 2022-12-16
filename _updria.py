@@ -1033,9 +1033,9 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
 
 
 def get_size_constraint(sort, size):
-    vars = [Var('%s_%d' %(sort, i), mksort(sort)) for i in range(size)]
-    qvar = QVar('X%s' %sort, mksort(sort))
-    formula = Forall(qvar, Or(*[Eq(qvar, v) for v in vars]))
+    vars = [z3.Const('%s_%d' %(sort, i), DeclareSort(sort)) for i in range(size)]
+    qvar = z3.Const('VAR_%s' %sort, DeclareSort(sort))
+    formula = z3.ForAll([qvar], z3.Or(*[qvar == v for v in vars]))
     return formula
 
 
@@ -1044,8 +1044,7 @@ def minimize_model(solver, sorts):
         for size in itertools.count(1):
             f = get_size_constraint(s, size)
             solver.push()
-            string = msat_to_smtlib2_ext(env, f, 'ALL', True)
-            solver.from_string(string)
+            solver.add(f)
             res = solver.check()
             solver.pop()
             if res == z3.sat:
@@ -1139,9 +1138,6 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
         assert is_sat == z3.unsat
     except AssertionError as Err:
         print('error in unsat core')
-        print(s2.model())
-        print(diagram)
-        print(n_diagram)
         raise Err
 
     core = minimize_core(s2)
@@ -1225,8 +1221,8 @@ def recblock(paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_f
             return True
 
         elif res == z3.sat:
-            # with Timer('minimizing_model_time'):
-            #     minimize_model(s, paramts.sorts)
+            with Timer('minimizing_model_time'):
+                minimize_model(s, paramts.sorts)
             model = s.model()
             n_diagram, universe_dict = extract_diagram(paramts.statevars, index_constants, predicates_dict.values(), model, paramts.sorts)
             s.reset()
@@ -1350,8 +1346,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
         while res == z3.sat:
             # take a model, extract a diagram
             print('found a cti')
-            # with Timer('minimizing_model_time'):
-            #     minimize_model(s, paramts.sorts)
+            with Timer('minimizing_model_time'):
+                minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(paramts.statevars, index_signature, abstract_predicates_dict.values(), \
