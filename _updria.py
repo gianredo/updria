@@ -919,7 +919,6 @@ def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sor
         for v in ex_vars_dict[s]:
             diagram = Exists(v, diagram)
     
-    print(diagram)
     return diagram, universes
 
 
