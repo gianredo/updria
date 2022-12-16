@@ -703,7 +703,7 @@ def convert_predicate(env, p):
     return z3_atom
 
 
-def extract_diagram(statevars, index_signature, abs_predicates, model, sort_names):
+def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sort_names):
     '''
     takes a z3 model and return a msat formula
     which is the diagram of the model
@@ -790,122 +790,125 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
                     pass
     
     #index predicates in the signature
-    for p in index_predicates:
-        ar = msat_decl_get_arity(p)       
-        assert ar > 0
-        for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(p, i))] for i in range(ar)]):    
-            msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
-            msat_ground = msat_make_uf(env, p, msat_vars)
-            ground = convert_predicate(env, msat_ground)
-            z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
-            ground = z3.substitute(ground, *zip(z3_vars, vars))
-            msat_ground = msat_make_uf(env, p, [QVar(str(x), mksort(str(x.sort()))) for x in vars])
-            try:
-                if bool(model.eval(ground)):
-                    predicates_constraint = And(predicates_constraint, msat_ground)
-                else:
-                    predicates_constraint = And(predicates_constraint, Not(msat_ground))
-
-            except z3types.Z3Exception as Err:
-                pass
-
-
-    # should add constrains of the form f(i) = j for all possible permutation of i, j
-    for x in index_functions:
-        ar = msat_decl_get_arity(x)
-        for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(x, i))] \
-            for i in range(ar)]):
-            msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
-            rettp = msat_decl_get_return_type(x)
-            for v in universes[msat_type_repr(rettp)]:
-                msat_ground = Eq(msat_make_uf(env, x, msat_vars), Var(str(v), mksort(str(v.sort()))))
+    if not opts.abstract_index:
+        for p in index_predicates:
+            ar = msat_decl_get_arity(p)       
+            assert ar > 0
+            for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(p, i))] for i in range(ar)]):    
+                msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+                msat_ground = msat_make_uf(env, p, msat_vars)
                 ground = convert_predicate(env, msat_ground)
                 z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
                 ground = z3.substitute(ground, *zip(z3_vars, vars))
-                msat_ground = Eq(msat_make_uf(env, x, [QVar(str(x), mksort(str(x.sort()))) \
-                    for x in vars]), Var(str(v), mksort(str(v.sort()))))
+                msat_ground = msat_make_uf(env, p, [QVar(str(x), mksort(str(x.sort()))) for x in vars])
                 try:
-                    # terrible hack 
-                    if str(model.eval(ground)) != str(ground):
-                        if model.eval(ground):
-                            predicates_constraint = And(predicates_constraint, msat_ground)
-                        else:
-                            predicates_constraint = And(predicates_constraint, Not(msat_ground))
+                    if bool(model.eval(ground)):
+                        predicates_constraint = And(predicates_constraint, msat_ground)
                     else:
-                        pass
+                        predicates_constraint = And(predicates_constraint, Not(msat_ground))
 
                 except z3types.Z3Exception as Err:
                     pass
 
 
+        # should add constrains of the form f(i) = j for all possible permutation of i, j
+        for x in index_functions:
+            ar = msat_decl_get_arity(x)
+            for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(x, i))] \
+                for i in range(ar)]):
+                msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+                rettp = msat_decl_get_return_type(x)
+                for v in universes[msat_type_repr(rettp)]:
+                    msat_ground = Eq(msat_make_uf(env, x, msat_vars), Var(str(v), mksort(str(v.sort()))))
+                    ground = convert_predicate(env, msat_ground)
+                    z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
+                    ground = z3.substitute(ground, *zip(z3_vars, vars))
+                    msat_ground = Eq(msat_make_uf(env, x, [QVar(str(x), mksort(str(x.sort()))) \
+                        for x in vars]), Var(str(v), mksort(str(v.sort()))))
+                    try:
+                        # terrible hack 
+                        if str(model.eval(ground)) != str(ground):
+                            if model.eval(ground):
+                                predicates_constraint = And(predicates_constraint, msat_ground)
+                            else:
+                                predicates_constraint = And(predicates_constraint, Not(msat_ground))
+                        else:
+                            pass
+
+                    except z3types.Z3Exception as Err:
+                        pass
+
+
     statevars_constraint = TRUE()
 
-    #we compute differently the values of statevars of boolean element type
-    #i.e. boolean constants in the signature or boolean functions
-    for a, _ in statevars:
-        if is_param(a) and msat_type_repr(type_(a)) == '[Bool]':
-            #boolean functions
-            #check if the evaluation is in the model
-            #check the evaluation of the 'name' of the function
-            z3_const = z3.Const('%s' %str(a), convert_type(env, type_(a)))
-            try:
-                # if the constant has an evaluation in the model, then we compute the constraint
-                # ugly way of comparing but idk
-                if str(model.eval(z3_const)) != str(z3_const):
-                    d = _param_map[str(a)][1] 
-                    ar = msat_decl_get_arity(d)
-                    for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(d, i))] for i in range(1, ar)]):
-                        msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
-                        msat_ground = ParamVal(a, msat_vars)
-                        ground = convert_predicate(env, msat_ground)
-                        z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
-                        ground = z3.substitute(ground, *zip(z3_vars, vars))
-                        msat_ground = ParamVal(a, [QVar(str(x), mksort(str(x.sort()))) for x in vars])
-                        if bool(model.eval(ground)):
-                            statevars_constraint = And(statevars_constraint, msat_ground)
-                        else:
-                            statevars_constraint = And(statevars_constraint, Not(msat_ground))
-            except z3types.Z3Exception as Err:
-                pass
-
-        #statevars with index type 
-        elif is_param(a) and msat_type_repr(msat_decl_get_return_type(_param_map[name(a)][1])) in sort_names:
-                    d = _param_map[str(a)][1] 
-                    ar = msat_decl_get_arity(d)
-                    for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(d, i))] for i in range(1, ar)]):
-                        msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
-                        msat_qvars = [QVar(str(x), mksort(str(x.sort()))) for x in vars]
-                        rettp = msat_decl_get_return_type(d)
-                        for v in universes[msat_type_repr(rettp)]:
-                            msat_ground = Eq(ParamVal(a, msat_vars), Var(str(v), mksort(str(v.sort()))))
+    if not opts.abstract_index:
+        #we compute differently the values of statevars of boolean element type
+        #i.e. boolean constants in the signature or boolean functions
+        for a, _ in statevars:
+            if is_param(a) and msat_type_repr(type_(a)) == '[Bool]':
+                #boolean functions
+                #check if the evaluation is in the model
+                #check the evaluation of the 'name' of the function
+                z3_const = z3.Const('%s' %str(a), convert_type(env, type_(a)))
+                try:
+                    # if the constant has an evaluation in the model, then we compute the constraint
+                    # ugly way of comparing but idk
+                    if str(model.eval(z3_const)) != str(z3_const):
+                        d = _param_map[str(a)][1] 
+                        ar = msat_decl_get_arity(d)
+                        for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(d, i))] for i in range(1, ar)]):
+                            msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+                            msat_ground = ParamVal(a, msat_vars)
                             ground = convert_predicate(env, msat_ground)
                             z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
                             ground = z3.substitute(ground, *zip(z3_vars, vars))
-                            msat_ground = Eq(ParamVal(a, msat_qvars), Var(str(v), mksort(str(v.sort()))))
-                            try:
-                                # terrible hack 
-                                if str(model.eval(ground)) != str(ground):
-                                    if model.eval(ground):
-                                        predicates_constraint = And(predicates_constraint, msat_ground)
+                            msat_ground = ParamVal(a, [QVar(str(x), mksort(str(x.sort()))) for x in vars])
+                            if bool(model.eval(ground)):
+                                statevars_constraint = And(statevars_constraint, msat_ground)
+                            else:
+                                statevars_constraint = And(statevars_constraint, Not(msat_ground))
+                except z3types.Z3Exception as Err:
+                    pass
+
+            #statevars with index type 
+            elif is_param(a) and msat_type_repr(msat_decl_get_return_type(_param_map[name(a)][1])) in sort_names:
+                        d = _param_map[str(a)][1] 
+                        ar = msat_decl_get_arity(d)
+                        for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(d, i))] for i in range(1, ar)]):
+                            msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+                            msat_qvars = [QVar(str(x), mksort(str(x.sort()))) for x in vars]
+                            rettp = msat_decl_get_return_type(d)
+                            for v in universes[msat_type_repr(rettp)]:
+                                msat_ground = Eq(ParamVal(a, msat_vars), Var(str(v), mksort(str(v.sort()))))
+                                ground = convert_predicate(env, msat_ground)
+                                z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
+                                ground = z3.substitute(ground, *zip(z3_vars, vars))
+                                msat_ground = Eq(ParamVal(a, msat_qvars), Var(str(v), mksort(str(v.sort()))))
+                                try:
+                                    # terrible hack 
+                                    if str(model.eval(ground)) != str(ground):
+                                        if model.eval(ground):
+                                            predicates_constraint = And(predicates_constraint, msat_ground)
+                                        else:
+                                            predicates_constraint = And(predicates_constraint, Not(msat_ground))
                                     else:
-                                        predicates_constraint = And(predicates_constraint, Not(msat_ground))
-                                else:
+                                        pass
+
+                                except z3types.Z3Exception as Err:
                                     pass
 
-                            except z3types.Z3Exception as Err:
-                                pass
-
+        for a, _ in statevars:
         # variable can be a boolean constant (not a function)        
-        elif msat_type_equals(type_(a), BOOL):
-            z3_predicate = convert_predicate(env, a)
-            try:
-                if bool(model.eval(z3_predicate)):
-                    statevars_constraint = And(statevars_constraint, a)
-                else:
-                    statevars_constraint = And(statevars_constraint, Not(a))
+            if msat_type_equals(type_(a), BOOL):
+                z3_predicate = convert_predicate(env, a)
+                try:
+                    if bool(model.eval(z3_predicate)):
+                        statevars_constraint = And(statevars_constraint, a)
+                    else:
+                        statevars_constraint = And(statevars_constraint, Not(a))
 
-            except z3types.Z3Exception as Err:
-                pass
+                except z3types.Z3Exception as Err:
+                    pass
 
 
     #make the diagram
@@ -916,6 +919,7 @@ def extract_diagram(statevars, index_signature, abs_predicates, model, sort_name
         for v in ex_vars_dict[s]:
             diagram = Exists(v, diagram)
     
+    print(diagram)
     return diagram, universes
 
 
@@ -1182,7 +1186,7 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
     return g_diagram
 
 
-def recblock(paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init):
+def recblock(opts, paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_formula, hat_init):
     if cti.frame_number == 0:
         print('CEX! Violation of the initial formula')
         return False
@@ -1224,7 +1228,7 @@ def recblock(paramts, index_constants, predicates_dict, abs_vars, cti : Cti, H_f
             with Timer('minimizing_model_time'):
                 minimize_model(s, paramts.sorts)
             model = s.model()
-            n_diagram, universe_dict = extract_diagram(paramts.statevars, index_constants, predicates_dict.values(), model, paramts.sorts)
+            n_diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_constants, predicates_dict.values(), model, paramts.sorts)
             s.reset()
             print('failed...')
             cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1))
@@ -1336,7 +1340,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
         #there are no more cti's
         assert not cti_queue
         #compute intersection between last frame and bad
-        last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
+        last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop), And(*paramts.axioms)])
         #pass it to z3
         _stats.num_z3_calls += 1
         s = z3.Solver()
@@ -1350,7 +1354,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                 minimize_model(s, paramts.sorts)
             model = s.model()
             print('extracting diagram...')
-            diagram, universe_dict = extract_diagram(paramts.statevars, index_signature, abstract_predicates_dict.values(), \
+            diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_signature, abstract_predicates_dict.values(), \
                 model, paramts.sorts)
             s.reset()
             # Aadd a cti in the cti_queue
@@ -1361,7 +1365,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
             while cti_queue:
                 curr =  cti_queue[-1]
                 #recursevily block the cex
-                recblockres = measure('rec_block_time', recblock, paramts, index_signature, abstract_predicates_dict,\
+                recblockres = measure('rec_block_time', recblock, opts, paramts, index_signature, abstract_predicates_dict,\
                      abs_vars, curr, H_formula, hat_init)
                 if not recblockres:
                     # abstract coutnerexample
@@ -1398,7 +1402,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                             # restart the loop with updated set of predicates
 
             # blocked cex, recompute last formula to see wheter there are more models
-            last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop)])
+            last_frame_formula = And(*[And(*frame_sequence[-1]), H_formula, Not(hat_prop), And(*paramts.axioms)])
             s = Solver()
             _stats.num_z3_calls += 1
             s.from_string(msat_to_smtlib2_ext(env, last_frame_formula, 'ALL', True))
