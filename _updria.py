@@ -1297,6 +1297,7 @@ def print_cex(cex):
 
 def updria(opts, paramts : ParametricTransitionSystem):
     global frame_sequence, cti_queue, frame_counter
+    z3.set_param('smt.random_seed', 42)
     predicates = find_initial_predicates(opts, paramts.sorts, paramts.init, paramts.prop)
     abstract_predicates_dict, abs_vars, norm_dict  = get_abstract_predicates(predicates)
     _stats.num_initial_preds = len([x for x in abstract_predicates_dict])
