@@ -48,12 +48,12 @@
  (let (($v (forall ((R round) (V value) (Q quorum)) (= (__choosable R V Q) (forall ((N node)) (=> (member N Q) (or (not (__left_round N R)) (__vote N R V))))))
  ))
  (and $v))
- :definition __choosable))
-(define-fun .def_choosable () Bool (!
- (let (($v (forall ((R round) (V value) (Q quorum)) (= (choosable R V Q) (forall ((N node)) (=> (member N Q) (or (not (left_round N R)) (vote N R V))))))
- ))
- (and $v))
- :definition choosable))
+ :axiom true))
+;;(define-fun .def_choosable () Bool (!
+;; (let (($v (forall ((R round) (V value) (Q quorum)) (= (choosable R V Q) (forall ((N node)) (=> (member N Q) (or (not (left_round N R)) (vote N R V))))))
+;; ))
+;; (and $v))
+;; :definition choosable))
 (define-fun .prop () Bool (!
  (let (($v (forall ((R1 round) (V1 value) (R2 round) (V2 value)) (=> (and (__decision R1 V1) (__decision R2 V2)) (= V1 V2)))
  ))
