@@ -410,7 +410,7 @@ def get_index_signature(paramts : ParametricTransitionSystem):
     - the set of constants of index sorts
     - the set of functions among index vars (domain and codomain are all indexes)
     - predicates among index vars (boolean functions and domain all indexes)
-    (there are not abstracted in the IA)
+    (these are not abstracted in the IA)
     '''
 
     all_formulae = [paramts.init, paramts.prop] + paramts.trans_rules + paramts.axioms
@@ -457,7 +457,7 @@ def get_index_signature(paramts : ParametricTransitionSystem):
     return all_constants, all_functions, all_preds
 
 
-def find_initial_predicates(opts, sorts, init_formula, prop):
+def find_initial_predicates(opts, sorts, formula):
     '''
     this function mines predicates from the initial formula and the proposition
     equalities of index sorts, predicates of index sorts are ignored
@@ -504,9 +504,7 @@ def find_initial_predicates(opts, sorts, init_formula, prop):
 
         return MSAT_VISIT_PROCESS
 
-    msat_visit_term(env, init_formula, find_predicates)
-    msat_visit_term(env, prop, find_predicates)
-
+    msat_visit_term(env, formula, find_predicates)
     #sort the predicates with msat_term_id
 
     return sorted(predicates, key=msat_term_id)
@@ -715,7 +713,7 @@ def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sor
     I test if str(m.eval(t)) == t - if the latter is true, t is not evaluated
 
     another possibilty is add the flag model_completion = True, which evaluate everything to some 
-    default value. however, this would produce unnecessary large
+    default value. however, this would produce unnecessary large formulas!
 
     '''
     # for every sort, take the universe of that sort in the model
@@ -1301,7 +1299,8 @@ def print_cex(cex):
 def updria(opts, paramts : ParametricTransitionSystem):
     global frame_sequence, cti_queue, frame_counter
     z3.set_param('smt.random_seed', 42)
-    predicates = find_initial_predicates(opts, paramts.sorts, paramts.init, paramts.prop)
+    predicates = find_initial_predicates(opts, paramts.sorts, paramts.init)
+    predicates += find_initial_predicates(opts, paramts.sorts, paramts.prop)
     abstract_predicates_dict, abs_vars, norm_dict  = get_abstract_predicates(predicates)
     _stats.num_initial_preds = len([x for x in abstract_predicates_dict])
     print('There are %d initial predicates' %_stats.num_initial_preds)
@@ -1443,7 +1442,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     #let's count the predicates in the invariant
                     actual_predicates = set()
                     for f in frame_sequence[i]:
-                        predicates = find_initial_predicates(opts, paramts.sorts, f, TRUE())
+                        predicates = find_initial_predicates(opts, paramts.sorts, f)
                         norm_predicates, _ = remove_duplicates(predicates)
                         actual_predicates = actual_predicates.union(norm_predicates)
                     _stats.num_predicates_inductive = len(actual_predicates)
