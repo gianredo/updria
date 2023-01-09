@@ -898,18 +898,18 @@ def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sor
                                 except z3types.Z3Exception as Err:
                                     pass
 
-        for a, _ in statevars:
-        # variable can be a boolean constant (not a function)        
-            if msat_type_equals(type_(a), BOOL):
-                z3_predicate = convert_predicate(env, a)
-                try:
-                    if bool(model.eval(z3_predicate)):
-                        statevars_constraint = And(statevars_constraint, a)
-                    else:
-                        statevars_constraint = And(statevars_constraint, Not(a))
+    for a, _ in statevars:
+    # variable can be a boolean constant (not a function)        
+        if msat_type_equals(type_(a), BOOL):
+            z3_predicate = convert_predicate(env, a)
+            try:
+                if bool(model.eval(z3_predicate)):
+                    statevars_constraint = And(statevars_constraint, a)
+                else:
+                    statevars_constraint = And(statevars_constraint, Not(a))
 
-                except z3types.Z3Exception as Err:
-                    pass
+            except z3types.Z3Exception as Err:
+                pass
 
 
     #make the diagram
@@ -1355,9 +1355,11 @@ def updria(opts, paramts : ParametricTransitionSystem):
             with Timer('minimizing_model_time'):
                 minimize_model(s, paramts.sorts)
             model = s.model()
+            #print(model)
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_signature, abstract_predicates_dict.values(), \
                 model, paramts.sorts)
+            #print(diagram)
             s.reset()
             # Aadd a cti in the cti_queue
             print('add cti')
