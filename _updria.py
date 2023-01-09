@@ -474,24 +474,27 @@ def find_initial_predicates(opts, sorts, init_formula, prop):
                 if msat_term_is_equal(env, t) and msat_type_repr(type_(arg(t, 0))) in sorts:
                     pass
 
-                # we ignore uf if the flag abstract_index is false
-                if not opts.abstract_index:
-                    if msat_term_is_uf(env, t):
-                        d = msat_term_get_decl(t)
-                        if msat_decl_id(d) in _param_read_funs:
-                            #in this case t is of the form (param name index1 ... indexn)
-                            #and param is a boolean (otherwise t would not be an atom), thus we can skip
+                elif msat_term_is_uf(env, t):
+                    d = msat_term_get_decl(t)
+                    if msat_decl_id(d) in _param_read_funs:
+                        if  not opts.abstract_index:
+                        #in this case t is of the form (param name index1 ... indexn)
+                        #and param is a boolean (otherwise t would not be an atom), thus we can skip
                             pass
                         else:
-                            # lets see if the predicate is all among index vars
-                            theory_sort_flag = False
-                            for i in range(msat_decl_get_arity(d)):
-                                if msat_type_repr(msat_decl_get_arg_type(d, i)) not in sorts:
-                                    theory_sort_flag = True
-
-                            if theory_sort_flag:
-                                predicates.add(t)
+                            predicates.add(t)               
+                    
+                    else:
+                        # lets see if the predicate is all among index vars
+                        theory_sort_flag = False
+                        for i in range(msat_decl_get_arity(d)):
+                            if msat_type_repr(msat_decl_get_arg_type(d, i)) not in sorts:
+                                theory_sort_flag = True
+                                
+                        if theory_sort_flag or opts.abstract_index:
+                            predicates.add(t)
                 
+
                 # boolean constants
                 elif msat_term_is_constant(env, t):
                     pass
@@ -1448,14 +1451,3 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     #count the number of total index predicates
                     _stats.num_final_preds = len(abstract_predicates_dict)
                     return VerificationResult(SAFE, frame_sequence[i])
-
-            # semantic fixpoint check
-            # f = Implies(And(*frame_sequence[i+1]), And(*frame_sequence[i]))
-            # s3 = z3.Solver()
-            # s3.from_string(msat_to_smtlib2_ext(env, Not(f), 'ALL', True))
-            # if s3.check() == z3.unsat:
-            #     print('Proved! Inductive invariant:')
-            #     for x in frame_sequence[i]:
-            #         print(substitute_diagram(x, abstract_predicates_dict, abs_vars))
-            #     return VerificationResult(SAFE, frame_sequence[i])
-            # s3.reset()
