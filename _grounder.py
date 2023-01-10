@@ -363,8 +363,9 @@ def concretize_cti_queue(opts, cti_queue, paramts, predicates_dict, abs_vars):
             for i in range(1, len(bmc_list_formula)):
                 itp = msat_get_interpolant(wenv, groups[:i])
                 itp = substitute(itp, vars_at_time[i-1], concrete_vars)
-                from _updria import find_initial_predicates
-                predicates = find_initial_predicates(opts, paramts.sorts, itp)
+                from _updria import find_predicates
+                predicates = find_predicates(paramts.sorts, itp)
+                # print('New predicates found are:')
                 # for x in predicates:
                 #     print(x)
                 # normalize predicates

@@ -24,13 +24,15 @@ class Options:
         self.input_language = 'vmt'
         self.use_diagram_constraint = True
         self.abstract_index = False
+        self.transition_num = False
 
     def __str__(self):
         return "\n".join(sorted([
             "vmt_property = %s" % self.vmt_property,
             "input_language = %s " % self.input_language,
             "use_diagram_constraint = %s " %self.use_diagram_constraint,
-            "abstract_index = %s " %self.abstract_index
+            "abstract_index = %s " %self.abstract_index,
+            "transition_num = %s " %self.transition_num,
             ]))
 # end of class Options
 
@@ -46,6 +48,7 @@ def getopts():
     p.add_argument('-l', '--input-language',
                    choices=['vmt', 'mcmt'])
     add_flag('abstract-index')
+    add_flag('transition-num')
     opts = Options()
     p.parse_args(namespace=opts)
     return opts
@@ -510,6 +513,39 @@ def find_initial_predicates(opts, sorts, formula):
     return sorted(predicates, key=msat_term_id)
 
 
+
+
+def find_predicates(sorts, formula):
+    '''
+    this function mines predicates from the initial formula and the proposition
+    equalities of index sorts, predicates of index sorts are ignored
+    also booleans
+
+    '''
+    predicates = set()
+
+    def find_predicates(env, t, pre):
+        nonlocal predicates
+        if not pre:
+            if msat_term_is_atom(env, t) and not msat_term_is_quantifier(env, t):
+                #equalities among index terms
+                if msat_term_is_equal(env, t) and msat_type_repr(type_(arg(t, 0))) in sorts:
+                    pass                
+                # boolean constants
+                elif msat_term_is_constant(env, t):
+                    pass
+                else:
+                    predicates.add(t)
+
+        return MSAT_VISIT_PROCESS
+
+    msat_visit_term(env, formula, find_predicates)
+    #sort the predicates with msat_term_id
+
+    return sorted(predicates, key=msat_term_id)
+
+
+
 def remove_duplicates(predicates, varlist = None):
     '''
     we rewrite index variables in predicates with qvars named '<type>_<position>' where position
@@ -704,7 +740,7 @@ def convert_predicate(env, p):
     return z3_atom
 
 
-def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sort_names):
+def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sort_names, trans_num):
     '''
     takes a z3 model and return a msat formula
     which is the diagram of the model
@@ -749,7 +785,6 @@ def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sor
                     eq_constraint.append(Not(Eq(c, QVar(str(v), mksort(s)))))
 
     eq_constraint = And(*eq_constraint)
-
 
     # compute the values of each predicate. 
     # we have both predicates in the index signature (original predicates)
@@ -838,7 +873,6 @@ def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sor
 
                     except z3types.Z3Exception as Err:
                         pass
-
 
     statevars_constraint = TRUE()
 
@@ -1024,9 +1058,7 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
     # print(EQ_formula_1)
     # print(EQ_formula_2)
     axioms = And(*paramts.axioms)
-    axioms = substitute(axioms, [c[0] for c in non_bool_vars], [c[0] for c in bar_statevars])
-
-
+    axioms = substitute(axioms, [c[0] for c in non_bool_vars], [c[0] for c in bar_statevars])        
 
     formula = And(And(*frame), Not(diagram), axioms, t_bar, H_formula, H_formula_next, EQ_formula_1, EQ_formula_2)
     if initial_constr:
@@ -1050,10 +1082,11 @@ def minimize_model(solver, sorts):
             solver.push()
             solver.add(f)
             res = solver.check()
-            solver.pop()
             if res == z3.sat:
                 print('minimal model of size %d for sort %s' %(size, s))
                 break
+            else:
+                solver.pop()
 
 
 
@@ -1228,7 +1261,10 @@ def recblock(opts, paramts, index_constants, predicates_dict, abs_vars, cti : Ct
             with Timer('minimizing_model_time'):
                 minimize_model(s, paramts.sorts)
             model = s.model()
-            n_diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_constants, predicates_dict.values(), model, paramts.sorts)
+            #print(model)
+            trans_num = len(paramts.trans_rules)
+            n_diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_constants, \
+                predicates_dict.values(), model, paramts.sorts, trans_num)
             s.reset()
             print('failed...')
             cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1))
@@ -1337,6 +1373,13 @@ def updria(opts, paramts : ParametricTransitionSystem):
     frame_sequence.append([hat_init])
     frame_sequence.append([])
 
+    if opts.transition_num:
+        rule_var = Var("rule", INT)
+        new_trans = []
+        for i, rule in enumerate(paramts.trans_rules):
+            new_trans.append(And(rule, Eq(rule_var, Int(i))))
+        paramts = paramts._replace(trans_rules = new_trans)
+
     #main loop of updr
     while True:
         #there are no more cti's
@@ -1357,8 +1400,8 @@ def updria(opts, paramts : ParametricTransitionSystem):
             model = s.model()
             #print(model)
             print('extracting diagram...')
-            diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_signature, abstract_predicates_dict.values(), \
-                model, paramts.sorts)
+            diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_signature, \
+                abstract_predicates_dict.values(), model, paramts.sorts, len(paramts.trans_rules))
             #print(diagram)
             s.reset()
             # Aadd a cti in the cti_queue
@@ -1444,7 +1487,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     #let's count the predicates in the invariant
                     actual_predicates = set()
                     for f in frame_sequence[i]:
-                        predicates = find_initial_predicates(opts, paramts.sorts, f)
+                        predicates = find_predicates(opts, paramts.sorts, f)
                         norm_predicates, _ = remove_duplicates(predicates)
                         actual_predicates = actual_predicates.union(norm_predicates)
                     _stats.num_predicates_inductive = len(actual_predicates)
