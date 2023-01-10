@@ -394,7 +394,7 @@ VerificationResult = namedtuple('VerificationResult', ['status', 'witness'])
 # updria  verification functions
 #-----------------------------------------------------------------------------
 
-Cti = namedtuple('Cti', ['diagram', 'universe_dict', 'frame_number'])
+Cti = namedtuple('Cti', ['diagram', 'universe_dict', 'frame_number', 'transition_num'])
 ## Global parameters of UPDRIA
 
 #frame sequence is a list of list of diagrams
@@ -740,7 +740,7 @@ def convert_predicate(env, p):
     return z3_atom
 
 
-def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sort_names, trans_num):
+def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sort_names):
     '''
     takes a z3 model and return a msat formula
     which is the diagram of the model
@@ -998,7 +998,7 @@ def get_next_abstract_formula(formula, abs_vars):
     return formula
 
 
-def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
+def get_abs_relative_inductive_check(opts, paramts, abs_vars, frame, diagram, \
     predicates_dict, H_formula, abs_init, initial_constr = False):
 
     '''
@@ -1044,7 +1044,17 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
     # abstract transition formula
     t_bar = [substitute(t, [c[0] for c in non_bool_vars], [c[0] for c in bar_statevars]) for t in paramts.trans_rules]
     t_bar = [substitute(t, [c[1] for c in non_bool_vars], [c[1] for c in bar_statevars]) for t in t_bar]
-    t_bar = Or(*t_bar)
+    
+    abs_trans = FALSE()
+    if opts.transition_num:
+        rule_var = Var("rule", INT)
+        for i, rule in enumerate(t_bar):
+            abs_trans = Or(abs_trans, And(rule, Eq(rule_var, Int(i))))
+
+        f = And(GE(rule_var, Int(0)), LE(rule_var, Int(len(paramts.trans_rules))))
+        paramts.axioms.append(f)
+    else:
+        abs_trans = Or(*t_bar)
 
     #next diagram
     next_diagram = get_next_abstract_formula(diagram, abs_vars)
@@ -1053,14 +1063,14 @@ def get_abs_relative_inductive_check(paramts, abs_vars, frame, diagram, \
     # print(H_formula_next)
     # print(And(*frame))
     # print(diagram)
-    # print(t_bar)
+    # print(abs_trans)
     # print(next_diagram)
     # print(EQ_formula_1)
     # print(EQ_formula_2)
     axioms = And(*paramts.axioms)
     axioms = substitute(axioms, [c[0] for c in non_bool_vars], [c[0] for c in bar_statevars])        
 
-    formula = And(And(*frame), Not(diagram), axioms, t_bar, H_formula, H_formula_next, EQ_formula_1, EQ_formula_2)
+    formula = And(And(*frame), Not(diagram), axioms, abs_trans, H_formula, H_formula_next, EQ_formula_1, EQ_formula_2)
     if initial_constr:
         formula = Or(formula, next_abs_init)
 
@@ -1126,7 +1136,7 @@ def minimize_core(s):
     return core
 
 
-def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_formula, hat_init):
+def generalize_diagram(opts, paramts, abs_vars, frame, diagram, predicates_dict, H_formula, hat_init):
     '''
     this function generalize the diagram
     returns a set of literals with possibly existentially quantified variables
@@ -1166,7 +1176,7 @@ def generalize_diagram(paramts, abs_vars, frame, diagram, predicates_dict, H_for
         n_diagram = Exists(v, n_diagram)
 
     s2 = Solver()
-    abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars, frame, n_diagram,\
+    abs_rel_formula = get_abs_relative_inductive_check(opts, paramts, abs_vars, frame, n_diagram,\
          predicates_dict, H_formula, hat_init, True)
 
     s2.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'ALL', True))
@@ -1229,17 +1239,35 @@ def recblock(opts, paramts, index_constants, predicates_dict, abs_vars, cti : Ct
         print('trying to block cex at frame %d' %cti.frame_number)
 
         # print('trying to block diagram %s' %(substitute_diagram(cti.diagram, predicates_dict, abs_vars)))
-        abs_rel_formula = get_abs_relative_inductive_check(paramts, abs_vars,\
+        abs_rel_formula = get_abs_relative_inductive_check(opts, paramts, abs_vars,\
              frame_sequence[cti.frame_number-1],\
              cti.diagram, predicates_dict, H_formula, hat_init)
 
         s = Solver()
         s.from_string(msat_to_smtlib2_ext(env, abs_rel_formula, 'ALL', True))
-        # for x in predicates_dict:
-        #     print(x)
-        _stats.num_z3_calls +=1
-        res = measure('z3_time', s.check)
-        if res == z3.unsat:
+
+        if opts.transition_num:
+            l = len(paramts.trans_rules)
+            for i in range(l):
+                s.push()
+                s.add(z3.Const('rule', IntSort()) == i)
+                _stats.num_z3_calls +=1
+                res = measure('z3_time', s.check)
+                if res == z3.unsat:
+                    s.pop()
+                    continue
+                elif res == z3.sat:
+                    with Timer('minimizing_model_time'):
+                        minimize_model(s, paramts.sorts)
+                    model = s.model()
+                    #print(model)
+                    n_diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_constants, \
+                        predicates_dict.values(), model, paramts.sorts)
+                    s.reset()
+                    print('failed...')
+                    cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1, i))
+                    return True
+
             try:
                 _stats.added_diagram[frame_counter] += 1
             except KeyError as err:
@@ -1248,32 +1276,55 @@ def recblock(opts, paramts, index_constants, predicates_dict, abs_vars, cti : Ct
             cti_queue.remove(cti)
             # generalize diagram with unsat cores
             print('generalizing diagram...')
-            gen_diagram = measure('generalization_time', generalize_diagram, paramts, abs_vars, \
+            gen_diagram = measure('generalization_time', generalize_diagram, opts, paramts, abs_vars, \
                 frame_sequence[cti.frame_number-1], cti.diagram, predicates_dict, H_formula, hat_init)
             # add diagram to all frames from 1 to frame_number
-            for i in range(1, cti.frame_number + 1):
+            for i in range(1, cti.frame_number+1):
                 if Not(gen_diagram) not in set(frame_sequence[i]):
                     frame_sequence[i].append(Not(gen_diagram))
             s.reset()
-            return True
 
-        elif res == z3.sat:
-            with Timer('minimizing_model_time'):
-                minimize_model(s, paramts.sorts)
-            model = s.model()
-            #print(model)
-            trans_num = len(paramts.trans_rules)
-            n_diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_constants, \
-                predicates_dict.values(), model, paramts.sorts, trans_num)
-            s.reset()
-            print('failed...')
-            cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1))
-            return True
+            return True 
 
-        else:
-            assert str(s.check()) == 'unknown'
-            s.reset()
-            raise NotImplementedError
+
+
+        else:    
+            _stats.num_z3_calls +=1
+            res = measure('z3_time', s.check)
+            if res == z3.unsat:
+                try:
+                    _stats.added_diagram[frame_counter] += 1
+                except KeyError as err:
+                    _stats.added_diagram[frame_counter] = 1
+                print('blocked')
+                cti_queue.remove(cti)
+                # generalize diagram with unsat cores
+                print('generalizing diagram...')
+                gen_diagram = measure('generalization_time', generalize_diagram, opts, paramts, abs_vars, \
+                    frame_sequence[cti.frame_number-1], cti.diagram, predicates_dict, H_formula, hat_init)
+                # add diagram to all frames from 1 to frame_number
+                for i in range(1, cti.frame_number + 1):
+                    if Not(gen_diagram) not in set(frame_sequence[i]):
+                        frame_sequence[i].append(Not(gen_diagram))
+                s.reset()
+                return True
+
+            elif res == z3.sat:
+                with Timer('minimizing_model_time'):
+                    minimize_model(s, paramts.sorts)
+                model = s.model()
+                #print(model)
+                n_diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_constants, \
+                    predicates_dict.values(), model, paramts.sorts)
+                s.reset()
+                print('failed...')
+                cti_queue.append(Cti(n_diagram, universe_dict, cti.frame_number-1, None))
+                return True
+
+            else:
+                assert str(s.check()) == 'unknown'
+                s.reset()
+                raise NotImplementedError
 
 
 def substitute_diagram(diagram, predicates_dict, abs_vars):
@@ -1373,12 +1424,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
     frame_sequence.append([hat_init])
     frame_sequence.append([])
 
-    if opts.transition_num:
-        rule_var = Var("rule", INT)
-        new_trans = []
-        for i, rule in enumerate(paramts.trans_rules):
-            new_trans.append(And(rule, Eq(rule_var, Int(i))))
-        paramts = paramts._replace(trans_rules = new_trans)
+  
 
     #main loop of updr
     while True:
@@ -1401,12 +1447,12 @@ def updria(opts, paramts : ParametricTransitionSystem):
             #print(model)
             print('extracting diagram...')
             diagram, universe_dict = extract_diagram(opts, paramts.statevars, index_signature, \
-                abstract_predicates_dict.values(), model, paramts.sorts, len(paramts.trans_rules))
+                abstract_predicates_dict.values(), model, paramts.sorts)
             #print(diagram)
             s.reset()
             # Aadd a cti in the cti_queue
             print('add cti')
-            new_cti = Cti(diagram, universe_dict, frame_counter)
+            new_cti = Cti(diagram, universe_dict, frame_counter, None)
             cti_queue.append(new_cti)
 
             while cti_queue:
@@ -1467,7 +1513,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
             for i in range(1, frame_counter):
                 for d in frame_sequence[i]:
                     if d not in set(frame_sequence[i+1]):
-                        f = get_abs_relative_inductive_check(paramts, abs_vars, frame_sequence[i+1], \
+                        f = get_abs_relative_inductive_check(opts, paramts, abs_vars, frame_sequence[i+1], \
                             Not(d), abstract_predicates_dict, H_formula, hat_init)
                         _stats.num_z3_calls += 1
                         s1 = Solver()
@@ -1487,7 +1533,7 @@ def updria(opts, paramts : ParametricTransitionSystem):
                     #let's count the predicates in the invariant
                     actual_predicates = set()
                     for f in frame_sequence[i]:
-                        predicates = find_predicates(opts, paramts.sorts, f)
+                        predicates = find_predicates(paramts.sorts, f)
                         norm_predicates, _ = remove_duplicates(predicates)
                         actual_predicates = actual_predicates.union(norm_predicates)
                     _stats.num_predicates_inductive = len(actual_predicates)
