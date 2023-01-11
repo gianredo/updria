@@ -881,29 +881,61 @@ def extract_diagram(opts, statevars, index_signature, abs_predicates, model, sor
         #i.e. boolean constants in the signature or boolean functions
         for a, _ in statevars:
             if is_param(a) and msat_type_repr(type_(a)) == '[Bool]':
-                #boolean functions
-                #check if the evaluation is in the model
-                #check the evaluation of the 'name' of the function
-                z3_const = z3.Const('%s' %str(a), convert_type(env, type_(a)))
-                try:
-                    # if the constant has an evaluation in the model, then we compute the constraint
-                    # ugly way of comparing but idk
-                    if str(model.eval(z3_const)) != str(z3_const):
-                        d = _param_map[str(a)][1] 
-                        ar = msat_decl_get_arity(d)
-                        for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(d, i))] for i in range(1, ar)]):
-                            msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
-                            msat_ground = ParamVal(a, msat_vars)
-                            ground = convert_predicate(env, msat_ground)
-                            z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
-                            ground = z3.substitute(ground, *zip(z3_vars, vars))
-                            msat_ground = ParamVal(a, [QVar(str(x), mksort(str(x.sort()))) for x in vars])
-                            if bool(model.eval(ground)):
-                                statevars_constraint = And(statevars_constraint, msat_ground)
-                            else:
-                                statevars_constraint = And(statevars_constraint, Not(msat_ground))
-                except z3types.Z3Exception as Err:
-                    pass
+                
+                
+                if opts.input_language == 'mcmt':
+                    index_tp = msat_get_simple_type(env, "index")
+                    toint_decl = msat_declare_function(
+                        env, "index2int", msat_get_function_type(env, [index_tp], INT))
+                    def toint(t):
+                        return msat_make_uf(env, toint_decl, [t])
+
+                    z3_const = z3.Const('%s' %str(a), convert_type(env, type_(a)))
+                    try:
+                        # if the constant has an evaluation in the model, then we compute the constraint
+                        # ugly way of comparing but idk
+                        if str(model.eval(z3_const)) != str(z3_const):
+                            d = _param_map[str(a)][1] 
+                            ar = msat_decl_get_arity(d)
+                            for vars in itertools.product(*[universes['index'] for i in range(1, ar)]):
+                                msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+                                msat_ground = ParamVal(a, [toint(x) for x in msat_vars])
+                                ground = convert_predicate(env, msat_ground)
+                                z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
+                                ground = z3.substitute(ground, *zip(z3_vars, vars))
+                                msat_ground = ParamVal(a, [toint(QVar(str(x), mksort(str(x.sort())))) for x in vars])
+                                if bool(model.eval(ground)):
+                                    statevars_constraint = And(statevars_constraint, msat_ground)
+                                else:
+                                    statevars_constraint = And(statevars_constraint, Not(msat_ground))
+                    except z3types.Z3Exception as Err:
+                        pass 
+
+                
+                else:  
+                    #boolean functions
+                    #check if the evaluation is in the model
+                    #check the evaluation of the 'name' of the function
+                    z3_const = z3.Const('%s' %str(a), convert_type(env, type_(a)))
+                    try:
+                        # if the constant has an evaluation in the model, then we compute the constraint
+                        # ugly way of comparing but idk
+                        if str(model.eval(z3_const)) != str(z3_const):
+                            d = _param_map[str(a)][1] 
+                            ar = msat_decl_get_arity(d)
+                            for vars in itertools.product(*[universes[msat_type_repr(msat_decl_get_arg_type(d, i))] for i in range(1, ar)]):
+                                msat_vars = [Var(str(x), mksort(str(x.sort()))) for x in vars]
+                                msat_ground = ParamVal(a, msat_vars)
+                                ground = convert_predicate(env, msat_ground)
+                                z3_vars = [z3.Const(smt2(a), convert_type(env, type_(a))) for a in msat_vars]
+                                ground = z3.substitute(ground, *zip(z3_vars, vars))
+                                msat_ground = ParamVal(a, [QVar(str(x), mksort(str(x.sort()))) for x in vars])
+                                if bool(model.eval(ground)):
+                                    statevars_constraint = And(statevars_constraint, msat_ground)
+                                else:
+                                    statevars_constraint = And(statevars_constraint, Not(msat_ground))
+                    except z3types.Z3Exception as Err:
+                        pass
 
             #statevars with index type 
             elif is_param(a) and msat_type_repr(msat_decl_get_return_type(_param_map[name(a)][1])) in sort_names:
