@@ -1,0 +1,42 @@
+name, result, total time, z3 time, generalization time, recursive block time, propagation time, refinement time, minimization time, number of z3 calls, added diagrams per frame, greates number of literas per frame, # refinements, # initial preds, # final preds, max size, # used preds, # failed ref, # frames
+
+sharded-kv.vmt, safe,  5.268,  1.148,  1.178,  2.643,  1.380,  0.000,  1.439,  199,  {0: 1; 1: 3; 2: 6; 3: 6; 4: 10; 5: 6},  {0: 7; 1: 12; 2: 12; 3: 7; 4: 6},  0,  0 ,  0,  0,  8, 0, 6 
+
+paxos_forall_choosable.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 
+
+paxos_forall_choosable_unsafe.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0 , 0, 0, 0, 0, 5 
+
+consensus_unsafe2.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0 , 0, 0, 0, 0, 8 
+
+sharded-kv_unsafe.vmt, unsafe,  1.474,  0.236,  0.296,  0.816,  0.213,  0.012,  0.418,  75,  {0: 1; 1: 3; 2: 6; 3: 3},  {0: 7; 1: 6; 2: 3},  0,  0 ,  0,  {'key': 1, 'node': 2, 'value': 1},  0, 0, 3 
+
+paxos_forall_choosable_unsafe_no_intersection.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,  0 , 0, 0, 0, 25, 2 
+
+paxos_forall_choosable_unsafe2.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0 , 0, 0, 0, 0, 5 
+
+paxos_forall.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0 , 0, 0, 0, 0, 6 
+
+stoppable_paxos_forall_choosable.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 
+
+consensus_unsafe.vmt, unsafe,  30.650,  4.260,  7.068,  27.295,  2.630,  0.036,  17.202,  355,  {0: 1; 1: 1; 2: 3; 3: 8; 4: 11; 5: 5},  {0: 26; 1: 26; 2: 26; 3: 26},  0,  0 ,  0,  {'node': 2, 'quorum': 2, 'value': 1},  0, 0, 5 
+
+consensus.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0 , 0, 0, 0, 0, 8 
+
+cache_unsafe.vmt, unsafe,  2.839,  0.262,  0.305,  2.102,  0.096,  0.090,  1.447,  68,  {0: 1; 1: 1; 2: 2},  {0: 17; 1: 25},  1,  0 ,  0,  {'address': 1, 'core': 1, 'value': 2},  0, 0, 2 
+
+lockserv.vmt, safe,  8.657,  2.189,  1.673,  5.244,  2.870,  0.000,  1.796,  622,  {0: 1; 1: 1; 2: 1; 3: 6; 4: 4; 5: 4; 6: 10; 7: 7; 8: 10; 9: 10; 10: 9},  {0: 10; 1: 10; 2: 10; 3: 10; 4: 10; 5: 10; 6: 10; 7: 10; 8: 10; 9: 3},  0,  0 ,  0,  0,  4, 0, 11 
+
+stoppable_paxos_forall.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0 , 0, 0, 0, 0, 4 
+
+sharded-kv-retransmit_unsafe.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0 , 0, 0, 0, 0, 5 
+
+sharded-kv-retransmit.vmt, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0 , 0, 0, 0, 0, 4 
+
+sharded-kv_unsafe2.vmt, unsafe,  4.784,  0.926,  0.884,  2.716,  1.119,  0.021,  1.483,  189,  {0: 1; 1: 3; 2: 6; 3: 6; 4: 13},  {0: 7; 1: 12; 2: 12; 3: 6},  0,  0 ,  0,  {'key': 1, 'node': 1, 'value': 2},  0, 0, 5 
+
+ring.vmt, safe,  800.911,  509.126,  187.566,  316.207,  472.497,  0.000,  94.466,  458,  {0: 1; 1: 1; 2: 1; 3: 3; 4: 6; 5: 14; 6: 26; 7: 12; 8: 1},  {0: 106; 1: 106; 2: 51; 3: 51; 4: 51; 5: 19; 6: 15; 7: 19},  0,  0 ,  0,  0,  11, 0, 9 
+
+cache.vmt, unsafe,  2.981,  0.245,  0.506,  2.302,  0.078,  0.092,  1.389,  68,  {0: 1; 1: 1; 2: 2},  {0: 17; 1: 25},  1,  0 ,  0,  {'address': 1, 'core': 1, 'value': 2},  0, 0, 2 
+
+lockserv_unsafe.vmt, unsafe,  18.700,  5.534,  3.169,  11.462,  6.403,  0.071,  5.775,  750,  {0: 1; 1: 1; 2: 1; 3: 5; 4: 3; 5: 5; 6: 8; 7: 6; 8: 9; 9: 9; 10: 12; 11: 12},  {0: 16; 1: 16; 2: 16; 3: 16; 4: 16; 5: 16; 6: 16; 7: 16; 8: 10; 9: 10; 10: 3},  0,  0 ,  0,  {'node': 3},  0, 0, 12 
+
