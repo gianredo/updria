@@ -1,0 +1,281 @@
+:comment  Base version of ARP protocol as described in RFC 826
+:comment  Elena Pagani -- Last update: Feb.23, 2017
+
+:comment  Modelization with all honest hosts
+
+:index nat
+:smt (define N::nat)
+
+:comment  phi counts the phase of the computation
+:global phi nat
+:comment  I indicates whether at this phase all hosts performed their actions
+:global I int
+
+:comment  flag for host sending message
+:local sm nat
+:comment  MAC of victim in caches
+:local CM nat
+:comment  IP of victim in caches
+:local CP nat
+:comment  flag for host updating cache
+:local cu nat
+
+:comment  all addresses (both MAC and IP) equal the node ID
+:comment  target ip address
+:global tp nat
+:comment  source hardware address
+:global sh nat
+:comment  source ip address
+:global sp nat
+
+
+:comment  ------- MODELIZATION -------
+:comment  Victim is node 1
+:comment  "Honest" is any node behaving properly but different from victim
+
+
+:comment  ------- SYSTEM AXIOMS -------
+:comment  none
+
+
+:comment  ------- INITIAL & UNSAFE -------
+
+:initial
+:var x
+:comment  no process has done anything
+:cnj (= phi 0) (= I 0) (= sh 0) (= sp 0) (= tp 0) (= sm[x] 0) (= CM[x] 0) (= CP[x] 0) (= cu[x] 0)
+
+:unsafe
+:var z1
+:comment  >=1 process remembers MAC(v)!= v for IP(v)=v
+:cnj (not (= CM[z1] 1)) (= CP[z1] 1)
+
+
+:comment  ------- TRANSITIONS -------
+
+:comment  T1
+:comment  set message fields depending on the sender, choosing random target
+:transition
+:var x
+:var y
+:var j
+:guard (= phi 0) (= sm[y] 0)
+:numcases 2
+:case (= x j)
+:val 1
+:val 1
+:val 0
+:val CM[j]
+:val CP[j]
+:val 1
+:val y
+:val x
+:val x
+:case (not (= x j))
+:val 1
+:val 1
+:val 0
+:val CM[j]
+:val CP[j]
+:val 0
+:val y
+:val x
+:val x
+
+
+:comment  T2
+:comment  Request processing when source != victim
+:comment  heard Request from honest --> skip
+:transition
+:var x
+:var j
+:guard (= phi 1) (= cu[x] 0) (< I N) (not (= sp 1))
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val tp
+:val sh
+:val sp
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T3
+:comment  cache update when Req.source=victim and node not target but with cache info
+:transition
+:var x
+:var j
+:guard (= phi 1) (= cu[x] 0) (< I N) (= sp 1) (not (= x tp)) (> CP[x] 0)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val sh
+:val sp
+:val 1
+:val tp
+:val sh
+:val sp
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+:comment  T4
+:comment  source=victim and node not target with no cache info --> skip
+:transition
+:var x
+:var j
+:guard (= phi 1) (= cu[x] 0) (< I N) (= sp 1) (not (= x tp)) (= CP[x] 0)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val tp
+:val sh
+:val sp
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T5
+:comment  heard Request from victim and target
+:transition
+:var x
+:var j
+:guard (= phi 1) (= cu[x] 0) (< I N) (= sp 1) (= x tp)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val 1
+:val sh
+:val sp
+:val 1
+:val tp
+:val sh
+:val sp
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T6
+:comment  target generates Reply (unicast)
+:transition
+:var x
+:var j
+:guard (= phi 1) (>= I N) (= sm[x] 1) (= cu[x] 1)
+:comment  uguard (= cu[j] 1)
+:numcases 2
+:case (= x j)
+:val 2
+:val 0
+:val 0
+:val CM[j]
+:val CP[j]
+:val 0
+:val sp
+:val x
+:val x
+:case (not (= x j))
+:val 2
+:val 0
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val sp
+:val x
+:val x
+
+
+:comment  T7
+:comment  Reply processing
+:transition
+:var x
+:var j
+:guard (= phi 2) (= x tp)
+:numcases 2
+:comment  target of the Reply
+:case (= x j)
+:val 3
+:val I
+:val sm[j]
+:val sh
+:val sp
+:val cu[j]
+:val tp
+:val sh
+:val sp
+:comment  other host does nothing
+:case (not (= x j))
+:val 3
+:val I
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T8
+:comment  re-set everything but caches before new iteration
+:transition
+:var j
+:guard (= phi 3)
+:numcases 1
+:case
+:val 0
+:val 0
+:val 0
+:val CM[j]
+:val CP[j]
+:val 0
+:val 0
+:val 0
+:val 0
+
+
+

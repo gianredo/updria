@@ -1,0 +1,666 @@
+
+:comment  ARP extension described in RFC 3927 (includes RFC 826)
+:comment  Elena Pagani -- Last update: Feb.23, 2017
+
+:comment  Modelization with 1 malicius and 1 victim node
+:comment  no cache aging; NO passive detection (violating RFC)
+:comment  Replies are always BROADCAST (according to RFC), also for malicious
+
+:comment  PROPERTY: safety (no MitM)
+
+
+:index nat
+:smt (define N::nat)
+
+:comment  phi counts the phase of the computation
+:global phi nat
+:comment  I indicates whether at this phase all hosts performed their actions
+:global I int
+:comment  GA indicates whether a Probe (1), Announcement (2), basic request (3), or an unsolicited Reply from the malicious (4) is generated
+:global GA nat
+
+:comment  flag for host sending message
+:local sm nat
+:comment  MAC of victim in caches
+:local CM nat
+:comment  IP of victim in caches
+:local CP nat
+:comment  flag for host updating cache
+:local cu nat
+:comment  flag for host yet to send a Probe (0), or having to send Announce (1), or configured (2)
+:local st nat
+
+:comment  all addresses (both MAC and IP) equal the node ID
+:comment  target ip address
+:global tp nat
+:comment  source hardware address
+:global sh nat
+:comment  source ip address
+:global sp nat
+
+
+:comment  ------- MODELIZATION -------
+:comment  Malicious is node 1; victim is node 2
+:comment  "Honest" is any node behaving properly but different from victim
+
+
+:comment  ------- SYSTEM AXIOMS -------
+:comment  none
+
+
+:comment  ------- INITIAL & UNSAFE -------
+
+:initial
+:var x
+:comment  no process has done anything
+:cnj (= phi 0) (= I 0) (= GA 0) (= sh 0) (= sp 0) (= tp 0) (= sm[x] 0) (= CM[x] 0) (= CP[x] 0) (= cu[x] 0) (>= st[x] 0) (<= st[x] 2)
+
+
+:unsafe
+:var z1
+:comment  >=1 process remembers MAC(v)!= v for IP(v)=v
+:cnj (not (= CM[z1] 2)) (= CP[z1] 2)
+
+
+:comment  ------- TRANSITIONS -------
+
+:comment  T1
+:comment  exists node in state 0 --> it sends a Probe
+:comment  nondeterminism: malicious may behave correctly
+:transition
+:var x
+:var j
+:guard (= phi 0) (= st[x] 0)
+:numcases 2
+:case (= x j)
+:val 2
+:val 1
+:val 1
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val 1
+:val x
+:val x
+:val 0
+:case (not (= x j))
+:val 2
+:val 1
+:val 1
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val x
+:val x
+:val 0
+
+
+:comment  T2
+:comment  exists node in state 1 --> it sends a Gratuitous Request
+:comment  nondeterminism: malicious may behave correctly
+:transition
+:var x
+:var j
+:guard (= phi 0) (= st[x] 1)
+:numcases 2
+:case (= x j)
+:val 2
+:val 1
+:val 2
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val 2
+:val x
+:val x
+:val x
+:case (not (= x j))
+:val 2
+:val 1
+:val 2
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val x
+:val x
+:val x
+
+
+:comment  T3
+:comment  exists node in state 2 --> it sends a base Request (goto T7)
+:comment  nondeterminism: malicious may behave correctly
+:transition
+:var x
+:var j
+:guard (= phi 0) (= st[x] 2)
+:numcases 2
+:case (= x j)
+:val 1
+:val 1
+:val 3
+:val 1
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val tp
+:val x
+:val x
+:case (not (= x j))
+:val 1
+:val 1
+:val 3
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val tp
+:val x
+:val x
+
+
+:comment  T4
+:comment  malicious sends a poisoned Gratuitous Request
+:transition
+:var x
+:var j
+:guard (= phi 0) (= x 1)
+:numcases 2
+:case (= x j)
+:val 2
+:val 1
+:val 2
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val 2
+:val 1
+:val 2
+:case (not (= x j))
+:val 2
+:val 1
+:val 2
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val 2
+:val 1
+:val 2
+
+
+:comment  T5
+:comment  malicious sends a poisoned base Request
+:comment  target chosen different from victim
+:transition
+:var x
+:var y
+:var j
+:guard (= phi 0) (= x 1) (not (= y 2)) (= sm[y] 0)
+:numcases 2
+:case (= x j)
+:val 2
+:val 1
+:val 3
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val y
+:val 1
+:val 2
+:case (not (= x j))
+:val 2
+:val 1
+:val 3
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val y
+:val 1
+:val 2
+
+
+:comment  T6
+:comment  malicious sends an unsolicited Reply (goto T14 and successive)
+:transition
+:var x
+:var y
+:var j
+:guard (= phi 0) (= x 1) (not (= y 2))
+:numcases 2
+:case (= x j)
+:val 3
+:val 1
+:val 4
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val y
+:val 1
+:val 2
+:case (not (= x j))
+:val 3
+:val 1
+:val 4
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val y
+:val 1
+:val 2
+
+
+:comment  T7
+:comment  generated honest base Request
+:comment  set message fields depending on the sender, choosing random target
+:transition
+:var x
+:var y
+:var j
+:guard (= phi 1) (= sm[x] 1) (= sm[y] 0)
+:numcases 2
+:case (= x j)
+:val 2
+:val 1
+:val GA
+:val 0
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val y
+:val x
+:val x
+:case (not (= x j))
+:val 2
+:val 1
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val y
+:val x
+:val x
+
+
+:comment  T8
+:comment  Request processing when source != victim
+:comment  heard Request from honest --> skip
+:transition
+:var x
+:var j
+:guard (= phi 2) (= cu[x] 0) (< I N) (not (= sp 2))
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val tp
+:val sh
+:val sp
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val st[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T9
+:comment  heard Request from victim and not target, but victim in cache --> update
+:transition
+:var x
+:var j
+:guard (= phi 2) (= cu[x] 0) (< I N) (= sp 2) (not (= x tp)) (> CP[x] 0)
+:numcases 2
+:case (= x j) 
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val sh
+:val sp
+:val 1
+:val st[j]
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val st[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T10
+:comment  heard Request from victim and not target, and victim not in cache --> skip
+:transition
+:var x
+:var j
+:guard (= phi 2) (= cu[x] 0) (< I N) (= sp 2) (not (= x tp)) (= CP[x] 0)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val st[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T11
+:comment  heard a Request from victim and target
+:comment  it records it has to send a Reply (goto T12)
+:transition
+:var x
+:var j
+:guard (= phi 2) (= cu[x] 0) (< I N) (= sp 2) (= x tp)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val GA
+:val 1
+:val sh
+:val sp
+:val 1
+:val st[j]
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val st[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T12
+:comment  target generates Reply (broadcast)
+:comment  malicious target may behave correctly
+:transition
+:var x
+:var j
+:guard (= phi 2) (>= I N) (= sm[x] 1) (= cu[x] 1)
+:numcases 2
+:case (= x j)
+:val 3
+:val 1
+:val GA
+:val 0
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val sp
+:val x
+:val x
+:case (not (= x j))
+:val 3
+:val 1
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val sp
+:val x
+:val x
+
+
+:comment  T13
+:comment  malicious target may generate poisoned Reply (broadcast)
+:transition
+:var x
+:var j
+:guard (= phi 2) (>= I N) (= x 1) (= sm[x] 1) (= cu[x] 1)
+:numcases 2
+:case (= x j)
+:val 3
+:val 1
+:val GA
+:val 0
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val sp
+:val x
+:val 2
+:case (not (= x j))
+:val 3
+:val 1
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val sp
+:val x
+:val 2
+
+
+:comment  T14
+:comment  Reply processing when source != victim
+:comment  heard Reply from honest --> skip
+:transition
+:var x
+:var j
+:guard (= phi 3) (= cu[x] 0) (< I N) (not (= sp 2))
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val tp
+:val sh
+:val sp
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val st[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T15
+:comment  heard Reply from victim and not target, but victim in cache --> update
+:transition
+:var x
+:var j
+:guard (= phi 3) (= cu[x] 0) (< I N) (= sp 2) (not (= x tp)) (> CP[x] 0)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val sh
+:val sp
+:val 1
+:val st[j]
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val st[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T16
+:comment  heard Reply from victim and not target, and victim not in cache --> skip
+:transition
+:var x
+:var j
+:guard (= phi 3) (= cu[x] 0) (< I N) (= sp 2) (not (= x tp)) (= CP[x] 0)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val 1
+:val st[j]
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val st[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T17
+:comment  heard Reply from victim and target
+:transition
+:var x
+:var j
+:guard (= phi 3) (= cu[x] 0) (< I N) (= sp 2) (= x tp)
+:numcases 2
+:case (= x j)
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val sh
+:val sp
+:val 1
+:val st[j]
+:val tp
+:val sh
+:val sp
+:comment  other hosts do nothing
+:case (not (= x j))
+:val phi
+:val (+ I 1)
+:val GA
+:val sm[j]
+:val CM[j]
+:val CP[j]
+:val cu[j]
+:val st[j]
+:val tp
+:val sh
+:val sp
+
+
+:comment  T18
+:comment  re-set everything but caches and state before new iteration
+:transition
+:var j
+:guard (= phi 3) (>= I N)
+:numcases 1
+:case
+:val 0
+:val 0
+:val 0
+:val 0
+:val CM[j]
+:val CP[j]
+:val 0
+:val st[j]
+:val 0
+:val 0
+:val 0
+
+
+
